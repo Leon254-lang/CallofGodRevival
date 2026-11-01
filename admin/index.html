@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Website Admin | Call of God Revival Ministry International</title>
+  <link rel="icon" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <header class="admin-header">
+    <a class="brand" href="/" aria-label="Return to the church website">
+      <img src="/assets/img/393841280_236881819388300_1089566289091516166_n.jpg" alt="">
+      <span><strong>Call of God</strong><small>Website administration</small></span>
+    </a>
+    <a class="public-link" href="/">View website <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main class="admin-main">
+    <section id="notice" class="notice" role="status" aria-live="polite" hidden></section>
+
+    <section id="setup-panel" class="auth-card" hidden>
+      <p class="eyebrow">One-time setup</p>
+      <h1>Create the first admin</h1>
+      <p>Use the private setup key configured on your Node.js host. This setup closes after the first admin account is created.</p>
+      <form id="setup-form" class="form-grid">
+        <label class="full-width">One-time setup key
+          <input name="setupKey" type="password" autocomplete="off" minlength="32" required>
+        </label>
+        <label>Email address
+          <input name="email" type="email" autocomplete="email" maxlength="254" required>
+        </label>
+        <label>Password
+          <input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        </label>
+        <p class="form-help full-width">Use at least 12 characters. Do not share your password or setup key.</p>
+        <button class="button full-width" type="submit">Create admin account</button>
+      </form>
+    </section>
+
+    <section id="login-panel" class="auth-card" hidden>
+      <p class="eyebrow">Welcome back</p>
+      <h1>Sign in to manage the website</h1>
+      <form id="login-form" class="form-grid">
+        <label class="full-width">Email address
+          <input name="email" type="email" autocomplete="username" maxlength="254" required>
+        </label>
+        <label class="full-width">Password
+          <input name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        </label>
+        <button class="button full-width" type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <section id="unavailable-panel" class="auth-card" hidden>
+      <p class="eyebrow">Admin portal</p>
+      <h1>Connect the website server</h1>
+      <p>The admin portal needs the Node.js app running with its MongoDB Atlas settings. Once it is deployed, reload this page to sign in or complete the one-time setup.</p>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="dashboard-heading">
+        <div>
+          <p class="eyebrow">Content management</p>
+          <h1>Manage your website</h1>
+          <p>Update church details, change page introductions, and publish new content without editing code.</p>
+        </div>
+        <button id="logout-button" class="button button-outline" type="button">Sign out</button>
+      </div>
+
+      <nav class="tabs" aria-label="Admin sections">
+        <button class="tab active" type="button" data-tab="site">Church details</button>
+        <button class="tab" type="button" data-tab="pages">Page headings</button>
+        <button class="tab" type="button" data-tab="editor">Edit page</button>
+        <button class="tab" type="button" data-tab="content">Content library</button>
+      </nav>
+
+      <section id="panel-site" class="admin-panel">
+        <div class="panel-heading">
+          <div><h2>Church details</h2><p>These details are shared across the public website.</p></div>
+        </div>
+        <form id="settings-form" class="form-grid editor-card">
+          <label>Church name
+            <input name="ministryName" maxlength="120" required>
+          </label>
+          <label>Phone
+            <input name="phone" type="tel" maxlength="40" required>
+          </label>
+          <label>Email
+            <input name="email" type="email" maxlength="254" required>
+          </label>
+          <label>Sunday service times
+            <input name="serviceTimes" maxlength="120" placeholder="8:30 AM &amp; 10:00 AM" required>
+          </label>
+          <label class="full-width">Address
+            <input name="address" maxlength="240" required>
+          </label>
+          <label>Facebook page
+            <input name="facebookUrl" type="url" maxlength="500">
+          </label>
+          <label>YouTube channel
+            <input name="youtubeUrl" type="url" maxlength="500">
+          </label>
+          <label class="full-width">Homepage headline
+            <input name="heroTitle" maxlength="140" required>
+          </label>
+          <label class="full-width">Homepage welcome message
+            <textarea name="heroDescription" rows="3" maxlength="500" required></textarea>
+          </label>
+          <input name="heroImage" type="hidden">
+          <label class="full-width">Homepage image (JPEG, PNG, or WebP; up to 8 MB)
+            <input id="hero-image" type="file" accept="image/jpeg,image/png,image/webp">
+          </label>
+          <p id="hero-image-status" class="form-help full-width">Choose a new photo to replace the current homepage church image.</p>
+          <div class="full-width form-actions">
+            <button class="button" type="submit">Save church details</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="panel-pages" class="admin-panel" hidden>
+        <div class="panel-heading">
+          <div><h2>Page headings</h2><p>Change the title and introduction at the top of each page. Leave a field blank to keep its current website text.</p></div>
+        </div>
+        <form id="page-copy-form" class="editor-card form-grid">
+          <label class="full-width">Choose a page
+            <select id="page-copy-slug" name="page">
+              <option value="about">Our Church</option>
+              <option value="visit">Plan Your Visit</option>
+              <option value="ministries">Ministries</option>
+              <option value="missions">Community Missions</option>
+              <option value="sermons">Sermons</option>
+              <option value="events">Events</option>
+              <option value="location">Service Times &amp; Location</option>
+              <option value="leadership">Leadership</option>
+              <option value="giving">Giving</option>
+              <option value="prayer">Prayer &amp; Care</option>
+              <option value="contact">Contact</option>
+            </select>
+          </label>
+          <label class="full-width">Page title
+            <input name="title" maxlength="140">
+          </label>
+          <label class="full-width">Introduction
+            <textarea name="intro" rows="3" maxlength="500"></textarea>
+          </label>
+          <div class="full-width form-actions">
+            <button class="button" type="submit">Save page heading</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="panel-editor" class="admin-panel" hidden>
+        <div class="panel-heading">
+          <div><h2>Edit page text &amp; photos</h2><p>Select highlighted text in the preview to edit it. Select a photo to replace it. Your changes go live when you save.</p></div>
+        </div>
+        <div class="editor-card page-editor-card">
+          <label class="page-selector">Choose a page
+            <select id="page-editor-slug">
+              <option value="home">Home</option>
+              <option value="about">Our Church</option>
+              <option value="visit">Plan Your Visit</option>
+              <option value="ministries">Ministries</option>
+              <option value="missions">Community Missions</option>
+              <option value="sermons">Sermons</option>
+              <option value="events">Events</option>
+              <option value="location">Service Times &amp; Location</option>
+              <option value="leadership">Leadership</option>
+              <option value="giving">Giving</option>
+              <option value="prayer">Prayer &amp; Care</option>
+              <option value="contact">Contact</option>
+            </select>
+          </label>
+          <div class="preview-help"><strong>Editing the preview:</strong> Plain text headings and paragraphs are editable. Page titles, the homepage welcome, and church details have their own forms. Links and form controls stay protected.</div>
+          <div class="preview-frame">
+            <iframe id="page-preview" title="Website page editing preview" src="/index.html" loading="lazy"></iframe>
+          </div>
+          <div class="image-editor">
+            <label>Replace selected photo
+              <input id="page-image-file" type="file" accept="image/jpeg,image/png,image/webp">
+            </label>
+            <button id="replace-page-image" class="button button-outline" type="button" disabled>Upload and replace photo</button>
+            <span id="page-image-status" class="form-help">Click a photo in the preview first.</span>
+          </div>
+          <div class="form-actions page-editor-actions">
+            <button id="save-page-content" class="button" type="button">Save page text &amp; photos</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-content" class="admin-panel" hidden>
+        <div class="panel-heading">
+          <div><h2>Content library</h2><p>Add or update announcements, events, sermons, ministries, leaders, and extra page sections.</p></div>
+        </div>
+        <div class="content-layout">
+          <form id="content-form" class="editor-card form-grid">
+            <input name="id" type="hidden">
+            <input name="image" type="hidden">
+            <div class="full-width form-title-row">
+              <h3 id="content-form-title">Add content</h3>
+              <button id="cancel-edit" class="text-button" type="button" hidden>Cancel edit</button>
+            </div>
+            <label>Content type
+              <select name="type">
+                <option value="announcement">Announcement</option>
+                <option value="event">Event</option>
+                <option value="sermon">Sermon / video</option>
+                <option value="ministry">Ministry</option>
+                <option value="leader">Leader</option>
+                <option value="page-section">Page section</option>
+              </select>
+            </label>
+            <label>Show on page
+              <select name="page">
+                <option value="home">Home</option>
+                <option value="about">Our Church</option>
+                <option value="visit">Plan Your Visit</option>
+                <option value="ministries">Ministries</option>
+                <option value="missions">Community Missions</option>
+                <option value="sermons">Sermons</option>
+                <option value="events">Events</option>
+                <option value="location">Service Times &amp; Location</option>
+                <option value="leadership">Leadership</option>
+                <option value="giving">Giving</option>
+                <option value="prayer">Prayer &amp; Care</option>
+                <option value="contact">Contact</option>
+                <option value="all">All pages</option>
+              </select>
+            </label>
+            <label class="full-width">Title
+              <input name="title" maxlength="140" required>
+            </label>
+            <label class="full-width">Description
+              <textarea name="description" rows="4" maxlength="3000"></textarea>
+            </label>
+            <label>Date or schedule
+              <input name="date" maxlength="100" placeholder="e.g. Sunday, 10:00 AM">
+            </label>
+            <label>Location
+              <input name="location" maxlength="180">
+            </label>
+            <label>Event price (optional)
+              <input name="price" maxlength="80" placeholder="e.g. Free">
+            </label>
+            <label>Speaker
+              <input name="speaker" maxlength="120">
+            </label>
+            <label>Series
+              <input name="series" maxlength="120">
+            </label>
+            <label>Bible passage
+              <input name="passage" maxlength="120" placeholder="e.g. Romans 8:28">
+            </label>
+            <label class="full-width">Link (optional, HTTPS)
+              <input name="link" type="url" maxlength="500" placeholder="https://...">
+            </label>
+            <label class="full-width">YouTube video link or 11-character video ID
+              <input name="videoId" maxlength="300" placeholder="https://www.youtube.com/watch?v=...">
+            </label>
+            <label class="full-width">Image (JPEG, PNG, or WebP; up to 8 MB)
+              <input id="content-image" type="file" accept="image/jpeg,image/png,image/webp">
+            </label>
+            <p id="image-status" class="form-help full-width">Images are stored in your MongoDB Atlas database.</p>
+            <label>Display order
+              <input name="order" type="number" min="0" max="10000" value="0">
+            </label>
+            <label class="publish-option">
+              <span>Publish on the website</span>
+              <input name="status" type="checkbox" checked>
+            </label>
+            <div class="full-width form-actions">
+              <button class="button" type="submit">Save content</button>
+            </div>
+          </form>
+          <div class="content-list-wrap">
+            <div class="list-heading"><h3>Saved content</h3><span id="content-count" class="count-badge">0</span></div>
+            <div id="content-list" class="content-list" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+      <p class="dashboard-footnote">Page layouts are managed by the website administrator. Published content appears in the section at the end of the page you select.</p>
+    </section>
+  </main>
+  <script src="/admin/admin.js" defer></script>
+</body>
+</html>
