@@ -1,6 +1,6 @@
-Thanks for downloading this template!
+Call of God Revival Ministry International
 
-Template Name: Mentor
-Template URL: https://bootstrapmade.com/mentor-free-education-bootstrap-theme/
-Author: BootstrapMade.com
-License: https://bootstrapmade.com/license/
+Church website for the ministry in Ugunja, Siaya County, Kenya.
+
+The site includes information about the church, ministries, Sunday services,
+revival meetings, leadership, community missions, giving, prayer, and contact.

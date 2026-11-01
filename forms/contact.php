@@ -1,10 +1,5 @@
 <?php
-  /**
-  * Requires the "PHP Email Form" library
-  * The "PHP Email Form" library is available only in the pro version of the template
-  * The library should be uploaded to: vendor/php-email-form/php-email-form.php
-  * For more info and help: https://bootstrapmade.com/php-email-form/
-  */
+  // Requires the PHP_Email_Form library at ../assets/vendor/php-email-form/php-email-form.php.
 
   $receiving_email_address = 'callofgodrevivalministry@gmail.com';
 
