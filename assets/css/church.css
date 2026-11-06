@@ -256,12 +256,13 @@ a:hover {
 }
 
 .leadership-photo {
+  display: block;
   width: 100%;
-  max-height: 390px;
+  height: auto;
+  max-height: none;
   margin-bottom: 24px;
   border-radius: 4px;
-  object-fit: cover;
-  object-position: center 35%;
+  object-fit: contain;
 }
 
 .ministry-poster {
@@ -309,6 +310,68 @@ a:hover {
   margin-bottom: 12px;
   font-family: var(--heading-font);
   font-size: 30px;
+}
+
+.payment-card {
+  height: 100%;
+  padding: clamp(22px, 4vw, 32px);
+  border: 1px solid #eee6d9;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.payment-card > i {
+  display: inline-grid;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f4ede1;
+  color: #a8793e;
+  font-size: 22px;
+}
+
+.payment-card h3 {
+  color: var(--heading-color);
+  font-family: var(--heading-font);
+  font-size: 28px;
+}
+
+.payment-card dl {
+  margin: 20px 0 0;
+}
+
+.payment-card dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 0;
+  border-top: 1px solid #eee6d9;
+}
+
+.payment-card dt {
+  color: #65706b;
+  font-weight: 600;
+}
+
+.payment-card dd {
+  margin: 0;
+  color: var(--heading-color);
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.payment-card dl > div:first-child dd {
+  font-size: 20px;
+  letter-spacing: .04em;
+}
+
+.payment-note {
+  margin: 14px 0 0;
+  color: #65706b;
+  font-size: 13px;
 }
 
 .icon-card {

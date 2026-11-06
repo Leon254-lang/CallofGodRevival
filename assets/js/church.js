@@ -304,6 +304,12 @@
         givingLink.hidden = false;
       }
     }
+    if (pageSlug === 'giving') {
+      for (const key of ['mpesaPaybill', 'mpesaAccount', 'mobilePaybill', 'mobileAccount', 'mobileAccountName']) {
+        const element = document.querySelector(`[data-giving-value="${key}"]`);
+        if (element && settings[key]) element.textContent = settings[key];
+      }
+    }
 
     document.querySelectorAll('p').forEach((paragraph) => {
       const text = paragraph.textContent || '';

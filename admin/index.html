@@ -112,6 +112,25 @@
           <label class="full-width">Secure giving provider link (optional)
             <input name="givingUrl" type="url" maxlength="500" placeholder="https://...">
           </label>
+          <fieldset class="full-width menu-labels">
+            <legend>Direct giving instructions</legend>
+            <label>M-PESA PayBill number
+              <input name="mpesaPaybill" maxlength="32">
+            </label>
+            <label>M-PESA account reference
+              <input name="mpesaAccount" maxlength="80">
+            </label>
+            <label>Mobile money PayBill number
+              <input name="mobilePaybill" maxlength="32">
+            </label>
+            <label>Mobile money account number
+              <input name="mobileAccount" maxlength="32">
+            </label>
+            <label class="full-width">Mobile money account name
+              <input name="mobileAccountName" maxlength="120">
+            </label>
+            <p class="form-help full-width">Verify these instructions with the church and payment provider before publishing changes.</p>
+          </fieldset>
           <label class="full-width">Homepage headline
             <input name="heroTitle" maxlength="140" required>
           </label>

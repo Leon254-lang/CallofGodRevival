@@ -82,6 +82,11 @@ test('validates website settings and limits editable page copy', () => {
     serviceTimes: '8:30 AM & 10:00 AM',
     facebookUrl: 'https://facebook.com/example',
     youtubeUrl: 'https://youtube.com/@example',
+    mpesaPaybill: '632581',
+    mpesaAccount: 'Tithe / Offering / First',
+    mobilePaybill: '247247',
+    mobileAccount: '589488',
+    mobileAccountName: 'Call of God Revival Ministry',
     heroTitle: 'Welcome',
     heroDescription: 'Join us in Ugunja.',
     heroImage: 'assets/img/church.jpg',
@@ -90,6 +95,11 @@ test('validates website settings and limits editable page copy', () => {
 
   assert.equal(settings.pageCopy.events.title, 'Gather with us');
   assert.equal(settings.heroImage, 'assets/img/church.jpg');
+  assert.equal(settings.mpesaPaybill, '632581');
+  assert.equal(settings.mpesaAccount, 'Tithe / Offering / First');
+  assert.equal(settings.mobilePaybill, '247247');
+  assert.equal(settings.mobileAccount, '589488');
+  assert.equal(settings.mobileAccountName, 'Call of God Revival Ministry');
   assert.equal(settings.menuLabels.about, undefined);
   assert.equal(settings.givingUrl, '');
   assert.throws(() => normalizeSettings({
