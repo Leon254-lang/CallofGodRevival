@@ -2,7 +2,7 @@
 
 (() => {
   const notice = document.querySelector('#notice');
-  const state = { csrfToken: '', settings: null, items: [], editingId: '' };
+  const state = { csrfToken: '', adminId: '', settings: null, items: [], accounts: [], editingId: '' };
   const editorPages = {
     home: 'index.html',
     about: 'about.html',
@@ -98,6 +98,10 @@
     for (const [key, value] of Object.entries(state.settings)) {
       if (form.elements.namedItem(key)) form.elements.namedItem(key).value = value || '';
     }
+    const labels = state.settings.menuLabels || {};
+    for (const key of ['home', 'about', 'visit', 'ministries', 'sermons', 'events', 'more', 'giving']) {
+      form.elements[`menu${key[0].toUpperCase()}${key.slice(1)}`].value = labels[key] || '';
+    }
   }
 
   function selectedPageCopy() {
@@ -113,15 +117,18 @@
   }
 
   async function loadDashboard() {
-    const [settingsResponse, itemsResponse] = await Promise.all([
+    const [settingsResponse, itemsResponse, accountsResponse] = await Promise.all([
       api('/api/admin/settings'),
       api('/api/admin/content'),
+      api('/api/admin/accounts'),
     ]);
     state.settings = settingsResponse.settings;
     state.items = itemsResponse.items;
+    state.accounts = accountsResponse.accounts;
     fillSettingsForm();
     fillPageCopyForm();
     renderContentList();
+    renderAccounts();
     showOnly('dashboard');
   }
 
@@ -174,9 +181,10 @@
       meta.className = 'content-meta';
       meta.append(
         makePill(pageNames[item.page] || item.page),
-        makePill(item.status === 'published' ? 'Published' : 'Draft', item.status === 'draft' ? 'draft' : ''),
+        makePill(item.status === 'published' ? 'Published' : item.status === 'scheduled' ? 'Scheduled' : 'Draft', item.status !== 'published' ? 'draft' : ''),
       );
       if (item.date) meta.append(makePill(item.date));
+      if (item.publishAt && item.status === 'scheduled') meta.append(makePill(new Date(item.publishAt).toLocaleString()));
       row.append(meta);
       if (item.description) {
         const description = document.createElement('p');
@@ -187,13 +195,114 @@
     }
   }
 
+  function renderAccounts() {
+    const list = document.querySelector('#account-list');
+    list.replaceChildren();
+    for (const account of state.accounts) {
+      const row = document.createElement('article');
+      row.className = 'content-row';
+      const header = document.createElement('div');
+      header.className = 'content-row-head';
+      const details = document.createElement('div');
+      const email = document.createElement('h4');
+      email.textContent = account.email;
+      const created = document.createElement('p');
+      created.textContent = `Administrator · Added ${new Date(account.createdAt).toLocaleDateString()}`;
+      details.append(email, created);
+      header.append(details);
+      if (account.id !== state.adminId) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = 'Remove access';
+        remove.addEventListener('click', () => removeAccount(account));
+        header.append(remove);
+      } else {
+        header.append(makePill('Current account'));
+      }
+      row.append(header);
+      list.append(row);
+    }
+    if (!state.accounts.length) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-list';
+      empty.textContent = 'No administrator accounts were found.';
+      list.append(empty);
+    }
+  }
+
+  async function removeAccount(account) {
+    if (!window.confirm(`Remove administrator access for ${account.email}? Their active sessions will be signed out.`)) return;
+    try {
+      await api(`/api/admin/accounts/${encodeURIComponent(account.id)}`, { method: 'DELETE', csrf: true });
+      state.accounts = state.accounts.filter((entry) => entry.id !== account.id);
+      renderAccounts();
+      showNotice('Administrator access removed.');
+    } catch (error) {
+      showNotice(error.message, 'error');
+    }
+  }
+
+  async function loadReports() {
+    const report = await api('/api/admin/reports');
+    const list = document.querySelector('#upcoming-events');
+    const summary = document.querySelector('#report-summary');
+    summary.replaceChildren();
+    const values = [
+      ['Total content', report.total],
+      ['Published', report.byStatus.published || 0],
+      ['Drafts', report.byStatus.draft || 0],
+      ['Scheduled', report.byStatus.scheduled || 0],
+      ['Events', report.byType.event || 0],
+      ['Sermons', report.byType.sermon || 0],
+    ];
+    for (const [label, value] of values) {
+      const card = document.createElement('div');
+      card.className = 'report-stat';
+      const amount = document.createElement('strong');
+      amount.textContent = String(value);
+      const caption = document.createElement('span');
+      caption.textContent = label;
+      card.append(amount, caption);
+      summary.append(card);
+    }
+    const updated = document.createElement('p');
+    updated.className = 'form-help full-width';
+    updated.textContent = report.lastUpdatedAt
+      ? `Content and settings last updated ${new Date(report.lastUpdatedAt).toLocaleString()}.`
+      : 'No content has been added yet.';
+    summary.append(updated);
+
+    list.replaceChildren();
+    for (const item of report.nextEvents) {
+      const row = document.createElement('article');
+      row.className = 'content-row';
+      const title = document.createElement('h4');
+      title.textContent = item.title;
+      const detail = document.createElement('p');
+      detail.textContent = [item.date, item.location, item.status === 'scheduled' && item.publishAt
+        ? `Publishes ${new Date(item.publishAt).toLocaleString()}`
+        : 'Published'].filter(Boolean).join(' · ');
+      row.append(title, detail);
+      list.append(row);
+    }
+    if (!report.nextEvents.length) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-list';
+      empty.textContent = 'No events are published or scheduled.';
+      list.append(empty);
+    }
+  }
+
   function resetContentForm() {
     const form = document.querySelector('#content-form');
     form.reset();
     form.elements.id.value = '';
     form.elements.image.value = '';
     form.elements.order.value = '0';
-    form.elements.status.checked = true;
+    form.elements.status.value = 'published';
+    form.elements.publishAt.value = '';
+    form.elements.publishAt.required = false;
+    document.querySelector('#publish-at-label').hidden = true;
     document.querySelector('#content-form-title').textContent = 'Add content';
     document.querySelector('#cancel-edit').hidden = true;
     document.querySelector('#image-status').textContent = 'Images are stored in your MongoDB Atlas database.';
@@ -202,10 +311,16 @@
 
   function editContent(item) {
     const form = document.querySelector('#content-form');
-    for (const key of ['id', 'type', 'page', 'title', 'description', 'date', 'location', 'price', 'speaker', 'series', 'passage', 'link', 'videoId', 'image', 'order']) {
+    for (const key of ['id', 'type', 'page', 'title', 'description', 'date', 'location', 'price', 'speaker', 'series', 'passage', 'link', 'videoId', 'transcript', 'studyMaterial', 'image', 'order']) {
       form.elements[key].value = item[key] ?? '';
     }
-    form.elements.status.checked = item.status === 'published';
+    form.elements.status.value = item.status || 'draft';
+    const publishAt = item.publishAt ? new Date(item.publishAt) : null;
+    form.elements.publishAt.value = publishAt && Number.isFinite(publishAt.getTime())
+      ? new Date(publishAt.getTime() - publishAt.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+      : '';
+    document.querySelector('#publish-at-label').hidden = form.elements.status.value !== 'scheduled';
+    form.elements.publishAt.required = form.elements.status.value === 'scheduled';
     document.querySelector('#content-form-title').textContent = 'Edit content';
     document.querySelector('#cancel-edit').hidden = false;
     document.querySelector('#image-status').textContent = item.image ? 'An image is saved for this item. Choose a new file to replace it.' : 'No image is saved for this item.';
@@ -246,6 +361,7 @@
     }
     clearNotice();
     if (tabName === 'editor') loadPagePreview();
+    if (tabName === 'reports') loadReports().catch((error) => showNotice(error.message, 'error'));
   }
 
   function pageEditorTextElements(root, selector) {
@@ -375,6 +491,7 @@
         body: Object.fromEntries(new FormData(form)),
       });
       state.csrfToken = data.csrfToken;
+      state.adminId = data.adminId;
       form.reset();
       await loadDashboard();
       showNotice('Admin account created. Keep your sign-in details private.');
@@ -397,6 +514,7 @@
         body: Object.fromEntries(new FormData(form)),
       });
       state.csrfToken = data.csrfToken;
+      state.adminId = data.adminId;
       form.reset();
       await loadDashboard();
       showNotice('You are signed in.');
@@ -426,8 +544,23 @@
     const form = event.currentTarget;
     const values = Object.fromEntries(new FormData(form));
     values.pageCopy = state.settings.pageCopy || {};
+    values.menuLabels = Object.fromEntries(
+      ['home', 'about', 'visit', 'ministries', 'sermons', 'events', 'more', 'giving']
+        .map((key) => [key, values[`menu${key[0].toUpperCase()}${key.slice(1)}`]])
+        .filter(([, label]) => label),
+    );
+    for (const key of ['menuHome', 'menuAbout', 'menuVisit', 'menuMinistries', 'menuSermons', 'menuEvents', 'menuMore', 'menuGiving']) {
+      delete values[key];
+    }
     const heroImage = document.querySelector('#hero-image').files[0];
+    const brandLogo = document.querySelector('#brand-logo').files[0];
     try {
+      if (brandLogo) {
+        document.querySelector('#brand-logo-status').textContent = 'Uploading church logo to Atlas…';
+        values.brandLogo = await uploadImage(brandLogo);
+      } else {
+        values.brandLogo = state.settings.brandLogo;
+      }
       if (heroImage) {
         document.querySelector('#hero-image-status').textContent = 'Uploading homepage image to Atlas…';
         values.heroImage = await uploadImage(heroImage);
@@ -437,9 +570,12 @@
       const data = await api('/api/admin/settings', { method: 'PUT', body: values, csrf: true });
       state.settings = data.settings;
       document.querySelector('#hero-image').value = '';
+      document.querySelector('#brand-logo').value = '';
+      document.querySelector('#brand-logo-status').textContent = 'Choose a logo to replace the current website logo.';
       document.querySelector('#hero-image-status').textContent = 'Choose a new photo to replace the current homepage church image.';
       showNotice('Church details saved and published.');
     } catch (error) {
+      document.querySelector('#brand-logo-status').textContent = 'The logo could not be uploaded.';
       document.querySelector('#hero-image-status').textContent = 'The homepage image or church details could not be saved.';
       showNotice(error.message, 'error');
     }
@@ -485,7 +621,10 @@
         values.image = await uploadImage(file);
       }
       values.order = Number(values.order || 0);
-      values.status = form.elements.status.checked ? 'published' : 'draft';
+      values.status = form.elements.status.value;
+      values.publishAt = values.status === 'scheduled'
+        ? new Date(values.publishAt).toISOString()
+        : '';
       const id = values.id;
       delete values.id;
       const response = await api(
@@ -499,7 +638,11 @@
       }
       renderContentList();
       resetContentForm();
-      showNotice('Content saved. Published items are now visible on the selected page.');
+      showNotice(values.status === 'scheduled'
+        ? 'Content saved and scheduled. It will appear on the website at the selected time.'
+        : values.status === 'published'
+          ? 'Content saved and published on the selected page.'
+          : 'Content saved as a draft.');
     } catch (error) {
       document.querySelector('#image-status').textContent = 'The content was not saved.';
       showNotice(error.message, 'error');
@@ -509,6 +652,109 @@
   });
 
   document.querySelector('#cancel-edit').addEventListener('click', resetContentForm);
+  document.querySelector('#preview-content').addEventListener('click', () => {
+    const form = document.querySelector('#content-form');
+    const values = Object.fromEntries(new FormData(form));
+    const card = document.querySelector('#content-preview-card');
+    card.replaceChildren();
+    const file = document.querySelector('#content-image').files[0];
+    const image = file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+      ? URL.createObjectURL(file)
+      : values.image;
+    if (image) {
+      const photo = document.createElement('img');
+      photo.src = image;
+      photo.alt = values.title || 'Content image';
+      card.append(photo);
+    }
+    const heading = document.createElement('h3');
+    heading.textContent = values.title || 'Untitled content';
+    card.append(heading);
+    for (const value of [values.date, values.location, values.description, values.speaker, values.series, values.passage]) {
+      if (!value) continue;
+      const paragraph = document.createElement('p');
+      paragraph.textContent = value;
+      card.append(paragraph);
+    }
+    if (values.videoId) {
+      const video = document.createElement('p');
+      video.textContent = `YouTube video: ${values.videoId}`;
+      card.append(video);
+    }
+    if (values.link || values.studyMaterial) {
+      const link = document.createElement('a');
+      link.href = values.link || values.studyMaterial;
+      link.textContent = values.link ? 'Registration or related link' : 'Study materials';
+      link.rel = 'noopener noreferrer';
+      link.target = '_blank';
+      card.append(link);
+    }
+    if (values.transcript) {
+      const notes = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = 'Transcript or study notes';
+      const transcript = document.createElement('p');
+      transcript.textContent = values.transcript;
+      notes.append(summary, transcript);
+      card.append(notes);
+    }
+    const status = document.createElement('p');
+    status.className = 'preview-status';
+    status.textContent = values.status === 'scheduled'
+      ? `Scheduled for ${values.publishAt || 'a future date'}`
+      : values.status === 'published' ? 'Will be published when saved' : 'Draft — not visible on the public website';
+    card.append(status);
+    document.querySelector('#content-preview').showModal();
+  });
+  document.querySelector('#close-content-preview').addEventListener('click', () => {
+    const card = document.querySelector('#content-preview-card');
+    const previewImage = card.querySelector('img')?.src || '';
+    document.querySelector('#content-preview').close();
+    if (previewImage.startsWith('blob:')) URL.revokeObjectURL(previewImage);
+  });
+  document.querySelector('#content-form').elements.status.addEventListener('change', (event) => {
+    const scheduled = event.currentTarget.value === 'scheduled';
+    document.querySelector('#publish-at-label').hidden = !scheduled;
+    document.querySelector('#content-form').elements.publishAt.required = scheduled;
+  });
+  document.querySelector('#account-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      const response = await api('/api/admin/accounts', {
+        method: 'POST',
+        body: Object.fromEntries(new FormData(form)),
+        csrf: true,
+      });
+      state.accounts.push(response.account);
+      form.reset();
+      renderAccounts();
+      showNotice('Administrator account added. Share the temporary password securely.');
+    } catch (error) {
+      showNotice(error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  });
+  document.querySelector('#refresh-reports').addEventListener('click', () => {
+    loadReports().then(() => showNotice('Report refreshed.')).catch((error) => showNotice(error.message, 'error'));
+  });
+  document.querySelector('#download-backup').addEventListener('click', async () => {
+    try {
+      const data = await api('/api/admin/backup');
+      const objectUrl = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `cgrm-settings-content-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      showNotice('Settings and content export downloaded. Uploaded media is not included.');
+    } catch (error) {
+      showNotice(error.message, 'error');
+    }
+  });
   document.querySelector('#page-editor-slug').addEventListener('change', loadPagePreview);
   document.querySelector('#save-page-content').addEventListener('click', savePageContent);
   document.querySelector('#replace-page-image').addEventListener('click', async (event) => {
@@ -543,6 +789,7 @@
       const data = await api('/api/admin/state');
       if (data.authenticated) {
         state.csrfToken = data.csrfToken;
+        state.adminId = data.adminId;
         await loadDashboard();
       } else if (data.setupAvailable) {
         showOnly('setup-panel');

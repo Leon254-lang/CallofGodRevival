@@ -23,17 +23,21 @@ const PAGE_SLUGS = [
 ];
 const CONTENT_TYPES = ['announcement', 'event', 'sermon', 'ministry', 'leader', 'page-section'];
 const SETTING_KEYS = [
-  'ministryName', 'phone', 'email', 'address', 'serviceTimes',
-  'facebookUrl', 'youtubeUrl', 'heroTitle', 'heroDescription', 'heroImage', 'pageCopy', 'pageContent',
+  'ministryName', 'brandLogo', 'phone', 'email', 'address', 'serviceTimes',
+  'facebookUrl', 'youtubeUrl', 'givingUrl', 'menuLabels',
+  'heroTitle', 'heroDescription', 'heroImage', 'pageCopy', 'pageContent',
 ];
 const DEFAULT_SETTINGS = {
   ministryName: 'Call of God Revival Ministry International',
+  brandLogo: 'assets/img/393841280_236881819388300_1089566289091516166_n.jpg',
   phone: '+254 726 046000',
   email: 'callofgodrevivalministry@gmail.com',
   address: 'Ugunja-Ukwala Road, Ugunja, Siaya County, Kenya · Postal Code 40606',
   serviceTimes: '8:30 AM & 10:00 AM',
   facebookUrl: 'https://www.facebook.com/p/Call-Of-God-Revival-Ministry-International-100090007431004/',
   youtubeUrl: 'https://www.youtube.com/@CGRM_Ugunja',
+  givingUrl: '',
+  menuLabels: {},
   heroTitle: 'Revival through the Word of God.',
   heroDescription: 'Call of God Revival Ministry International is a church in Ugunja, committed to the Word of God, evangelism, and serving our community through missions.',
   heroImage: 'assets/img/605673610_122272980704086499_7073146479451574358_n.jpg',
@@ -96,6 +100,7 @@ async function connectDatabase() {
     admins.createIndex({ email: 1 }, { unique: true }),
     sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     contentItems.createIndex({ status: 1, page: 1, order: 1, updatedAt: -1 }),
+    contentItems.createIndex({ status: 1, publishAt: 1 }),
   ]);
 }
 
@@ -338,12 +343,15 @@ function normalizeSettings(input) {
   }
   const settings = {
     ministryName: normalizeText(input.ministryName, 'Ministry name', 120, { required: true }),
+    brandLogo: normalizeImageRef(input.brandLogo),
     phone: normalizeText(input.phone, 'Phone number', 40, { required: true }),
     email: normalizeEmail(input.email),
     address: normalizeText(input.address, 'Address', 240, { required: true }),
     serviceTimes: normalizeText(input.serviceTimes, 'Service times', 120, { required: true }),
     facebookUrl: normalizeHttpsUrl(input.facebookUrl, 'Facebook link'),
     youtubeUrl: normalizeHttpsUrl(input.youtubeUrl, 'YouTube link'),
+    givingUrl: normalizeHttpsUrl(input.givingUrl, 'Giving link'),
+    menuLabels: normalizeMenuLabels(input.menuLabels),
     heroTitle: normalizeText(input.heroTitle, 'Homepage headline', 140, { required: true }),
     heroDescription: normalizeText(input.heroDescription, 'Homepage introduction', 500, { required: true }),
     heroImage: normalizeImageRef(input.heroImage),
@@ -353,6 +361,17 @@ function normalizeSettings(input) {
   };
   if (!settings.email) throw new HttpError(400, 'Enter a valid ministry email address.');
   return settings;
+}
+
+function normalizeMenuLabels(value) {
+  const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const menuLabels = {};
+  for (const [key, label] of Object.entries(input)) {
+    if (!['home', 'about', 'visit', 'ministries', 'sermons', 'events', 'more', 'giving'].includes(key)) continue;
+    const text = normalizeText(label, 'Menu label', 40);
+    if (text) menuLabels[key] = text;
+  }
+  return menuLabels;
 }
 
 function normalizeImageRef(value) {
@@ -397,7 +416,18 @@ function normalizeContentItem(input) {
   if (!Number.isInteger(order) || order < 0 || order > 10000) {
     throw new HttpError(400, 'Display order must be a whole number between 0 and 10000.');
   }
-  const status = input.status === 'published' ? 'published' : 'draft';
+  const status = ['published', 'scheduled'].includes(input.status) ? input.status : 'draft';
+  let publishAt = null;
+  if (input.publishAt) {
+    const parsedPublishAt = new Date(input.publishAt);
+    if (!Number.isFinite(parsedPublishAt.getTime())) {
+      throw new HttpError(400, 'Choose a valid publication date and time.');
+    }
+    publishAt = parsedPublishAt;
+  }
+  if (status === 'scheduled' && (!publishAt || publishAt <= new Date())) {
+    throw new HttpError(400, 'Scheduled content must have a future publication date and time.');
+  }
   return {
     type,
     page,
@@ -411,9 +441,12 @@ function normalizeContentItem(input) {
     passage: normalizeText(input.passage, 'Bible passage', 120),
     link: normalizeHttpsUrl(input.link, 'Link'),
     videoId: normalizeVideoId(input.videoId),
+    transcript: normalizeText(input.transcript, 'Transcript or study notes', 10000),
+    studyMaterial: normalizeHttpsUrl(input.studyMaterial, 'Study material link'),
     image: normalizeImageRef(input.image),
     order,
     status,
+    publishAt: status === 'scheduled' ? publishAt : null,
     updatedAt: new Date(),
   };
 }
@@ -427,11 +460,18 @@ function serializeContent(doc) {
     description: doc.description,
     date: doc.date,
     location: doc.location,
+    price: doc.price,
+    speaker: doc.speaker,
+    series: doc.series,
+    passage: doc.passage,
     link: doc.link,
     videoId: doc.videoId,
+    transcript: doc.transcript || '',
+    studyMaterial: doc.studyMaterial || '',
     image: doc.image,
     order: doc.order,
     status: doc.status,
+    publishAt: doc.publishAt || null,
     updatedAt: doc.updatedAt,
   };
 }
@@ -558,6 +598,7 @@ app.get('/api/admin/state', asyncRoute(async (req, res) => {
     setupAvailable: adminCount === 0 && !setupState && SETUP_KEY.length >= 32,
     configured: adminCount > 0,
     authenticated: Boolean(session),
+    adminId: session?.adminId?.toString() || '',
     csrfToken: session?.csrfToken || '',
   });
 }));
@@ -611,7 +652,7 @@ app.post('/api/admin/setup', asyncRoute(async (req, res) => {
 
   clearAttempts(ipKey);
   const csrfToken = await issueSession(adminId, res);
-  res.status(201).json({ authenticated: true, csrfToken });
+  res.status(201).json({ authenticated: true, adminId: adminId.toString(), csrfToken });
 }));
 
 app.post('/api/admin/login', asyncRoute(async (req, res) => {
@@ -633,7 +674,61 @@ app.post('/api/admin/login', asyncRoute(async (req, res) => {
 
   clearAttempts(key);
   const csrfToken = await issueSession(admin._id, res);
-  res.json({ authenticated: true, csrfToken });
+  res.json({ authenticated: true, adminId: admin._id.toString(), csrfToken });
+}));
+
+app.get('/api/admin/accounts', requireAdmin, asyncRoute(async (_req, res) => {
+  const accounts = await admins.find({}, { projection: { email: 1, createdAt: 1 } }).sort({ createdAt: 1 }).toArray();
+  res.json({
+    accounts: accounts.map((account) => ({
+      id: account._id.toString(),
+      email: account.email,
+      createdAt: account.createdAt,
+    })),
+  });
+}));
+
+app.post('/api/admin/accounts', requireAdmin, requireCsrf, asyncRoute(async (req, res) => {
+  const email = normalizeEmail(req.body.email);
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  if (!email) throw new HttpError(400, 'Enter a valid admin email address.');
+  if (password.length < PASSWORD_MIN_LENGTH || password.length > 128) {
+    throw new HttpError(400, `Choose a password between ${PASSWORD_MIN_LENGTH} and 128 characters.`);
+  }
+
+  const salt = crypto.randomBytes(16);
+  const passwordHash = await scryptAsync(password, salt, 64);
+  const result = await admins.insertOne({
+    email,
+    passwordSalt: salt.toString('hex'),
+    passwordHash: Buffer.from(passwordHash).toString('hex'),
+    createdAt: new Date(),
+  });
+  res.status(201).json({
+    account: { id: result.insertedId.toString(), email, createdAt: new Date() },
+  });
+}));
+
+app.delete('/api/admin/accounts/:id', requireAdmin, requireCsrf, asyncRoute(async (req, res) => {
+  if (!ObjectId.isValid(req.params.id)) throw new HttpError(400, 'That admin account could not be found.');
+  const accountId = new ObjectId(req.params.id);
+  if (accountId.equals(req.adminSession.adminId)) {
+    throw new HttpError(400, 'You cannot remove the admin account you are currently using.');
+  }
+  const dbSession = client.startSession();
+  try {
+    await dbSession.withTransaction(async () => {
+      if (await admins.countDocuments({}, { limit: 2, session: dbSession }) <= 1) {
+        throw new HttpError(400, 'The last admin account cannot be removed.');
+      }
+      const result = await admins.deleteOne({ _id: accountId }, { session: dbSession });
+      if (result.deletedCount !== 1) throw new HttpError(404, 'That admin account could not be found.');
+      await sessions.deleteMany({ adminId: accountId }, { session: dbSession });
+    });
+  } finally {
+    await dbSession.endSession();
+  }
+  res.status(204).end();
 }));
 
 app.post('/api/admin/logout', requireAdmin, requireCsrf, asyncRoute(async (req, res) => {
@@ -660,6 +755,40 @@ app.put('/api/admin/settings', requireAdmin, requireCsrf, asyncRoute(async (req,
 app.get('/api/admin/content', requireAdmin, asyncRoute(async (_req, res) => {
   const docs = await contentItems.find({}).sort({ updatedAt: -1 }).limit(200).toArray();
   res.json({ items: docs.map(serializeContent) });
+}));
+
+app.get('/api/admin/reports', requireAdmin, asyncRoute(async (_req, res) => {
+  const [total, byStatus, byType, nextEvents, settingsDoc, latest] = await Promise.all([
+    contentItems.countDocuments({}),
+    contentItems.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]).toArray(),
+    contentItems.aggregate([{ $group: { _id: '$type', count: { $sum: 1 } } }]).toArray(),
+    contentItems.find({ type: 'event', status: { $in: ['published', 'scheduled'] } })
+      .sort({ publishAt: 1, updatedAt: -1 }).limit(10).toArray(),
+    settingsCollection.findOne({ _id: 'main' }, { projection: { updatedAt: 1 } }),
+    contentItems.find({}).sort({ updatedAt: -1 }).limit(1).next(),
+  ]);
+  res.json({
+    total,
+    byStatus: Object.fromEntries(byStatus.map((entry) => [entry._id || 'draft', entry.count])),
+    byType: Object.fromEntries(byType.map((entry) => [entry._id || 'other', entry.count])),
+    nextEvents: nextEvents.map(serializeContent),
+    lastUpdatedAt: [latest?.updatedAt, settingsDoc?.updatedAt].filter(Boolean).sort().at(-1) || null,
+    analyticsAvailable: false,
+  });
+}));
+
+app.get('/api/admin/backup', requireAdmin, asyncRoute(async (_req, res) => {
+  const [settingsDoc, docs] = await Promise.all([
+    settingsCollection.findOne({ _id: 'main' }),
+    contentItems.find({}).sort({ createdAt: 1 }).toArray(),
+  ]);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="cgrm-website-backup.json"');
+  res.json({
+    exportedAt: new Date().toISOString(),
+    settings: publicSettings(settingsDoc),
+    items: docs.map(serializeContent),
+  });
 }));
 
 app.post('/api/admin/content', requireAdmin, requireCsrf, asyncRoute(async (req, res) => {
@@ -745,7 +874,13 @@ app.get('/api/public/bootstrap', asyncRoute(async (req, res) => {
     : 'home';
   const [settingsDoc, items] = await Promise.all([
     settingsCollection.findOne({ _id: 'main' }),
-    contentItems.find({ status: 'published', page: { $in: [page, 'all'] } })
+    contentItems.find({
+      page: { $in: [page, 'all'] },
+      $or: [
+        { status: 'published' },
+        { status: 'scheduled', publishAt: { $lte: new Date() } },
+      ],
+    })
       .sort({ order: 1, updatedAt: -1 })
       .limit(50)
       .toArray(),

@@ -74,6 +74,8 @@
         <button class="tab" type="button" data-tab="pages">Page headings</button>
         <button class="tab" type="button" data-tab="editor">Edit page</button>
         <button class="tab" type="button" data-tab="content">Content library</button>
+        <button class="tab" type="button" data-tab="accounts">Admin accounts</button>
+        <button class="tab" type="button" data-tab="reports">Reports &amp; backup</button>
       </nav>
 
       <section id="panel-site" class="admin-panel">
@@ -84,6 +86,11 @@
           <label>Church name
             <input name="ministryName" maxlength="120" required>
           </label>
+          <input name="brandLogo" type="hidden">
+          <label>Church logo (JPEG, PNG, or WebP; up to 8 MB)
+            <input id="brand-logo" type="file" accept="image/jpeg,image/png,image/webp">
+          </label>
+          <p id="brand-logo-status" class="form-help full-width">Choose a logo to replace the current website logo.</p>
           <label>Phone
             <input name="phone" type="tel" maxlength="40" required>
           </label>
@@ -102,6 +109,9 @@
           <label>YouTube channel
             <input name="youtubeUrl" type="url" maxlength="500">
           </label>
+          <label class="full-width">Secure giving provider link (optional)
+            <input name="givingUrl" type="url" maxlength="500" placeholder="https://...">
+          </label>
           <label class="full-width">Homepage headline
             <input name="heroTitle" maxlength="140" required>
           </label>
@@ -113,6 +123,17 @@
             <input id="hero-image" type="file" accept="image/jpeg,image/png,image/webp">
           </label>
           <p id="hero-image-status" class="form-help full-width">Choose a new photo to replace the current homepage church image.</p>
+          <fieldset class="full-width menu-labels">
+            <legend>Navigation labels</legend>
+            <label>Home <input name="menuHome" maxlength="40"></label>
+            <label>Our Church <input name="menuAbout" maxlength="40"></label>
+            <label>Plan Your Visit <input name="menuVisit" maxlength="40"></label>
+            <label>Ministries <input name="menuMinistries" maxlength="40"></label>
+            <label>Sermons <input name="menuSermons" maxlength="40"></label>
+            <label>Events <input name="menuEvents" maxlength="40"></label>
+            <label>More <input name="menuMore" maxlength="40"></label>
+            <label>Give <input name="menuGiving" maxlength="40"></label>
+          </fieldset>
           <div class="full-width form-actions">
             <button class="button" type="submit">Save church details</button>
           </div>
@@ -252,11 +273,17 @@
             <label>Bible passage
               <input name="passage" maxlength="120" placeholder="e.g. Romans 8:28">
             </label>
-            <label class="full-width">Link (optional, HTTPS)
+            <label class="full-width">Registration or related link (optional, HTTPS)
               <input name="link" type="url" maxlength="500" placeholder="https://...">
             </label>
             <label class="full-width">YouTube video link or 11-character video ID
               <input name="videoId" maxlength="300" placeholder="https://www.youtube.com/watch?v=...">
+            </label>
+            <label class="full-width">Transcript or study notes
+              <textarea name="transcript" rows="5" maxlength="10000"></textarea>
+            </label>
+            <label class="full-width">Study material link (optional, HTTPS)
+              <input name="studyMaterial" type="url" maxlength="500" placeholder="https://...">
             </label>
             <label class="full-width">Image (JPEG, PNG, or WebP; up to 8 MB)
               <input id="content-image" type="file" accept="image/jpeg,image/png,image/webp">
@@ -266,10 +293,18 @@
               <input name="order" type="number" min="0" max="10000" value="0">
             </label>
             <label class="publish-option">
-              <span>Publish on the website</span>
-              <input name="status" type="checkbox" checked>
+              <span>Publication status</span>
+              <select name="status">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="scheduled">Schedule publication</option>
+              </select>
+            </label>
+            <label id="publish-at-label" hidden>Publish on
+              <input name="publishAt" type="datetime-local">
             </label>
             <div class="full-width form-actions">
+              <button id="preview-content" class="button button-outline" type="button">Preview content</button>
               <button class="button" type="submit">Save content</button>
             </div>
           </form>
@@ -279,9 +314,46 @@
           </div>
         </div>
       </section>
-      <p class="dashboard-footnote">Page layouts are managed by the website administrator. Published content appears in the section at the end of the page you select.</p>
+
+      <section id="panel-accounts" class="admin-panel" hidden>
+        <div class="panel-heading">
+          <div><h2>Admin accounts</h2><p>All accounts have full administrator access. Use individual accounts and remove access when it is no longer needed.</p></div>
+        </div>
+        <form id="account-form" class="editor-card form-grid">
+          <h3 class="full-width">Add an administrator</h3>
+          <label>Email address
+            <input name="email" type="email" maxlength="254" autocomplete="email" required>
+          </label>
+          <label>Initial password
+            <input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+          </label>
+          <p class="form-help full-width">Choose a unique password and share it securely with the new administrator.</p>
+          <div class="full-width form-actions"><button class="button" type="submit">Add administrator</button></div>
+        </form>
+        <div class="content-list-wrap account-list-wrap">
+          <div class="list-heading"><h3>Current administrators</h3></div>
+          <div id="account-list" class="content-list" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="panel-reports" class="admin-panel" hidden>
+        <div class="panel-heading">
+          <div><h2>Reports &amp; backup</h2><p>Review content status and upcoming events, or download a backup of website settings and content.</p></div>
+        </div>
+        <div class="editor-card reports-card">
+          <div class="form-actions"><button id="refresh-reports" class="button button-outline" type="button">Refresh report</button><button id="download-backup" class="button" type="button">Export settings &amp; content</button></div>
+          <div id="report-summary" class="report-summary" aria-live="polite"></div>
+          <div><h3>Published &amp; scheduled events</h3><div id="upcoming-events" class="content-list"></div></div>
+          <p class="form-help">Traffic analytics and sign-up counts are not collected. Contact and prayer forms remain email-only; they are not stored in this site’s database. This JSON export excludes uploaded media; back up MongoDB GridFS separately.</p>
+        </div>
+      </section>
+      <p class="dashboard-footnote">Giving is handled by the external provider link you configure; this site never collects payment details. Page layouts remain fixed, and uploaded images are stored in MongoDB Atlas GridFS.</p>
     </section>
   </main>
+  <dialog id="content-preview" class="content-preview-dialog">
+    <div class="preview-dialog-heading"><h2>Content preview</h2><button id="close-content-preview" class="button button-outline" type="button">Close</button></div>
+    <article id="content-preview-card" class="preview-content-card"></article>
+  </dialog>
   <script src="/admin/admin.js" defer></script>
 </body>
 </html>

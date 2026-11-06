@@ -133,6 +133,24 @@
           description.textContent = item.description;
           content.append(description);
         }
+        if (item.transcript) {
+          const transcript = document.createElement('details');
+          transcript.className = 'media-notes';
+          const summary = document.createElement('summary');
+          summary.textContent = 'Read transcript or study notes';
+          const notes = document.createElement('p');
+          notes.textContent = item.transcript;
+          transcript.append(summary, notes);
+          content.append(transcript);
+        }
+        if (item.studyMaterial) {
+          const material = document.createElement('a');
+          material.href = item.studyMaterial;
+          material.target = '_blank';
+          material.rel = 'noopener noreferrer';
+          material.textContent = 'Open study materials';
+          content.append(material);
+        }
         card.append(frame, content);
       } else if (item.type === 'event' || item.type === 'announcement') {
         card = document.createElement('article');
@@ -250,6 +268,41 @@
       document.querySelectorAll('a[href^="https://www.youtube.com/@CGRM_Ugunja"]').forEach((link) => {
         link.href = settings.youtubeUrl;
       });
+    }
+    if (settings.brandLogo) {
+      document.querySelectorAll('.brand-logo').forEach((image) => {
+        image.src = settings.brandLogo;
+      });
+    }
+
+    const menuLabels = settings.menuLabels || {};
+    const menuPages = {
+      home: 'index.html',
+      about: 'about.html',
+      visit: 'visit.html',
+      ministries: 'courses.html',
+      sermons: 'sermons.html',
+      events: 'events.html',
+      more: '#',
+      giving: 'pricing.html',
+    };
+    for (const [key, file] of Object.entries(menuPages)) {
+      const label = menuLabels[key];
+      if (!label) continue;
+      const link = document.querySelector(`#navmenu a[href="${file}"]`);
+      if (!link) continue;
+      for (const node of Array.from(link.childNodes)) {
+        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) node.remove();
+      }
+      link.insertBefore(document.createTextNode(label), link.firstChild);
+    }
+
+    if (pageSlug === 'giving' && settings.givingUrl) {
+      const givingLink = document.querySelector('[data-giving-link]');
+      if (givingLink) {
+        givingLink.href = settings.givingUrl;
+        givingLink.hidden = false;
+      }
     }
 
     document.querySelectorAll('p').forEach((paragraph) => {

@@ -14,6 +14,20 @@ text and replace photos in existing pages, and add or remove announcements,
 events, sermons, ministries, leaders, and page sections. The page layouts remain
 fixed; new content is added to the selected page.
 
+Administrators can also manage additional full-access admin accounts, preview
+content before saving, publish drafts or schedule content, and export settings
+and content as JSON. Scheduled items become public when their scheduled time is
+reached and the public site next requests content. Giving links must use an
+external HTTPS provider; the site does not collect payment details. Sermons can
+embed YouTube videos and include transcript/study notes and external study
+material links.
+
+Contact and prayer submissions continue to be emailed only and are not retained
+in the website database. The reports show content counts, not traffic analytics
+or sign-up counts. The JSON export does not include uploaded images; database
+backups must include the GridFS media collections described below. All admin
+accounts currently have the same full administrator access.
+
 Deployment
 ----------
 

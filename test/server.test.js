@@ -41,6 +41,31 @@ test('rejects invalid page names and unsafe content links', () => {
   assert.throws(() => normalizeContentItem({ ...valid, page: 'not-a-page', link: '' }), /website page/);
 });
 
+test('validates scheduled content and transcript fields', () => {
+  const publishAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const item = normalizeContentItem({
+    type: 'sermon',
+    page: 'sermons',
+    title: 'Sunday message',
+    status: 'scheduled',
+    publishAt,
+    transcript: 'Study notes for the message.',
+    studyMaterial: 'https://example.org/study-notes',
+  });
+
+  assert.equal(item.status, 'scheduled');
+  assert.equal(item.publishAt.toISOString(), publishAt);
+  assert.equal(item.transcript, 'Study notes for the message.');
+  assert.equal(item.studyMaterial, 'https://example.org/study-notes');
+  assert.throws(() => normalizeContentItem({
+    type: 'event',
+    page: 'events',
+    title: 'Past event',
+    status: 'scheduled',
+    publishAt: new Date(Date.now() - 60 * 1000).toISOString(),
+  }), /future publication/);
+});
+
 test('normalizes YouTube URLs to validated video IDs', () => {
   assert.equal(normalizeVideoId('https://www.youtube.com/watch?v=AbCdEf_1234'), 'AbCdEf_1234');
   assert.equal(normalizeVideoId('https://youtu.be/AbCdEf_1234'), 'AbCdEf_1234');
@@ -65,6 +90,19 @@ test('validates website settings and limits editable page copy', () => {
 
   assert.equal(settings.pageCopy.events.title, 'Gather with us');
   assert.equal(settings.heroImage, 'assets/img/church.jpg');
+  assert.equal(settings.menuLabels.about, undefined);
+  assert.equal(settings.givingUrl, '');
+  assert.throws(() => normalizeSettings({
+    ministryName: 'Church',
+    phone: '+254',
+    email: 'church@example.org',
+    address: 'Ugunja',
+    serviceTimes: 'Sunday',
+    heroTitle: 'Welcome',
+    heroDescription: 'Join us.',
+    heroImage: '',
+    givingUrl: 'javascript:alert(1)',
+  }), /HTTPS/);
   assert.throws(() => normalizeSettings({
     ministryName: 'Church',
     phone: '+254',
@@ -97,6 +135,9 @@ test('serves the admin portal without exposing server source files', async (cont
 
   assert.equal(adminResponse.status, 200);
   assert.match(adminHtml, /Manage your website/);
+  assert.match(adminHtml, /Admin accounts/);
+  assert.match(adminHtml, /Reports &amp; backup/);
+  assert.match(adminHtml, /Preview content/);
   assert.equal(adminResponse.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), true);
   assert.equal(sourceResponse.status, 404);
   assert.doesNotMatch(sourceBody, /MONGODB_URI|passwordHash/);
