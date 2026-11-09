@@ -143,12 +143,18 @@ test('serves the admin portal without exposing server source files', async (cont
   const sourceBody = await sourceResponse.text();
   const formBody = await formResponse.text();
 
+  const homeResponse = await fetch(`${baseUrl}/`);
+  const homeHtml = await homeResponse.text();
+
   assert.equal(adminResponse.status, 200);
   assert.match(adminHtml, /Manage your website/);
   assert.match(adminHtml, /Admin accounts/);
   assert.match(adminHtml, /Reports &amp; backup/);
   assert.match(adminHtml, /Preview content/);
   assert.equal(adminResponse.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), true);
+  assert.equal(homeResponse.status, 200);
+  assert.match(homeHtml, /Call of God Revival Ministry/);
+  assert.equal(homeResponse.headers.get('content-security-policy')?.includes("script-src 'self' 'unsafe-inline'"), true);
   assert.equal(sourceResponse.status, 404);
   assert.doesNotMatch(sourceBody, /MONGODB_URI|passwordHash/);
   assert.equal(formResponse.status, 404);

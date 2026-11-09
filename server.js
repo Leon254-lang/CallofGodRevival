@@ -578,19 +578,23 @@ async function sendWebsiteForm(req, res, kind) {
   res.redirect(303, location);
 }
 
+const ADMIN_CSP = "default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'";
+const PUBLIC_CSP = "default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; font-src 'self' data:; media-src 'self';";
+
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
   if (IS_PRODUCTION) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
   if (req.path.startsWith('/admin') || req.path.startsWith('/api/admin')) {
     res.setHeader('Cache-Control', 'no-store');
-    res.setHeader(
-      'Content-Security-Policy',
-      "default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'",
-    );
+    res.setHeader('Content-Security-Policy', ADMIN_CSP);
+  } else {
+    res.setHeader('Content-Security-Policy', PUBLIC_CSP);
   }
   next();
 });
