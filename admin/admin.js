@@ -96,7 +96,10 @@
   function fillSettingsForm() {
     const form = document.querySelector('#settings-form');
     for (const [key, value] of Object.entries(state.settings)) {
-      if (form.elements.namedItem(key)) form.elements.namedItem(key).value = value || '';
+      const field = form.elements.namedItem(key);
+      if (!field) continue;
+      if (field.type === 'checkbox') field.checked = value === true;
+      else field.value = value || '';
     }
     const labels = state.settings.menuLabels || {};
     for (const key of ['home', 'about', 'visit', 'ministries', 'sermons', 'events', 'more', 'giving']) {
@@ -130,6 +133,9 @@
     renderContentList();
     renderAccounts();
     showOnly('dashboard');
+    window.dispatchEvent(new CustomEvent('admin:live-ready', {
+      detail: { csrfToken: state.csrfToken },
+    }));
   }
 
   function makePill(text, extraClass = '') {
@@ -527,10 +533,12 @@
 
   document.querySelector('#logout-button').addEventListener('click', async () => {
     try {
+      if (window.stopLiveBroadcastBeforeLogout && !(await window.stopLiveBroadcastBeforeLogout())) return;
       await api('/api/admin/logout', { method: 'POST', csrf: true });
       state.csrfToken = '';
       state.settings = null;
       state.items = [];
+      window.dispatchEvent(new Event('admin:live-logout'));
       showOnly('login-panel');
       showNotice('You have signed out.');
     } catch (error) {
@@ -543,6 +551,7 @@
     clearNotice();
     const form = event.currentTarget;
     const values = Object.fromEntries(new FormData(form));
+    values.streamLive = form.elements.streamLive.checked;
     values.pageCopy = state.settings.pageCopy || {};
     values.menuLabels = Object.fromEntries(
       ['home', 'about', 'visit', 'ministries', 'sermons', 'events', 'more', 'giving']

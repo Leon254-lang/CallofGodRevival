@@ -393,4 +393,101 @@
     contactStatus.hidden = false;
     window.history.replaceState(null, '', `${window.location.pathname}#contact`);
   }
+
+  const assistant = document.createElement('aside');
+  assistant.className = 'church-assistant';
+  assistant.innerHTML = `
+    <button class="church-assistant-toggle" type="button" aria-expanded="false" aria-controls="church-assistant-panel">
+      <i class="bi bi-chat-dots" aria-hidden="true"></i> Ask about the Bible or church
+    </button>
+    <section id="church-assistant-panel" class="church-assistant-panel" role="dialog" aria-labelledby="church-assistant-title" hidden>
+      <header class="church-assistant-header">
+        <div><h2 id="church-assistant-title">Bible &amp; Church Assistant</h2><p>KJV questions and church information</p></div>
+        <button class="church-assistant-close" type="button" aria-label="Close assistant">×</button>
+      </header>
+      <p class="church-assistant-disclaimer">AI answers can be mistaken. Check Scripture and confirm church details. Messages are sent to OpenAI; don’t share private information.</p>
+      <div class="church-assistant-messages" role="log" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions"></div>
+      <p class="church-assistant-status" role="status" aria-live="polite"></p>
+      <form class="church-assistant-form">
+        <label for="church-assistant-input">Your question</label>
+        <textarea id="church-assistant-input" name="question" maxlength="1200" rows="2" required></textarea>
+        <button class="btn-church" type="submit">Send</button>
+      </form>
+    </section>`;
+  document.body.append(assistant);
+
+  const assistantToggle = assistant.querySelector('.church-assistant-toggle');
+  const assistantPanel = assistant.querySelector('.church-assistant-panel');
+  const assistantClose = assistant.querySelector('.church-assistant-close');
+  const assistantMessages = assistant.querySelector('.church-assistant-messages');
+  const assistantStatus = assistant.querySelector('.church-assistant-status');
+  const assistantForm = assistant.querySelector('.church-assistant-form');
+  const assistantInput = assistant.querySelector('#church-assistant-input');
+  const conversation = [];
+
+  const appendAssistantMessage = (role, text) => {
+    const message = document.createElement('p');
+    message.className = `church-assistant-message ${role}`;
+    message.textContent = text;
+    assistantMessages.append(message);
+    assistantMessages.scrollTop = assistantMessages.scrollHeight;
+  };
+
+  appendAssistantMessage('assistant', 'Hello! Ask me about the King James Bible or the church. I’ll cite Scripture when I can and let you know when I’m unsure.');
+
+  const closeAssistant = () => {
+    assistantPanel.hidden = true;
+    assistantToggle.setAttribute('aria-expanded', 'false');
+    assistantToggle.focus();
+  };
+
+  assistantToggle.addEventListener('click', () => {
+    const willOpen = assistantPanel.hidden;
+    assistantPanel.hidden = !willOpen;
+    assistantToggle.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen) assistantInput.focus();
+  });
+  assistantClose.addEventListener('click', closeAssistant);
+  assistantPanel.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAssistant();
+  });
+
+  assistantForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const question = assistantInput.value.trim();
+    if (!question) return;
+    conversation.push({ role: 'user', content: question });
+    if (conversation.length > 8) conversation.splice(0, conversation.length - 8);
+    appendAssistantMessage('user', question);
+    assistantInput.value = '';
+    assistantInput.disabled = true;
+    assistantForm.querySelector('button[type="submit"]').disabled = true;
+    assistantPanel.setAttribute('aria-busy', 'true');
+    assistantStatus.textContent = 'Thinking…';
+
+    try {
+      const response = await fetch('/api/public/church-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ messages: conversation }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `The assistant could not answer (${response.status}).`);
+      if (typeof data.answer !== 'string' || !data.answer.trim()) {
+        throw new Error('The assistant returned an empty answer. Please try again.');
+      }
+      conversation.push({ role: 'assistant', content: data.answer });
+      if (conversation.length > 8) conversation.splice(0, conversation.length - 8);
+      appendAssistantMessage('assistant', data.answer);
+      assistantStatus.textContent = '';
+    } catch (error) {
+      assistantStatus.textContent = error.message;
+    } finally {
+      assistantInput.disabled = false;
+      assistantForm.querySelector('button[type="submit"]').disabled = false;
+      assistantPanel.removeAttribute('aria-busy');
+      assistantInput.focus();
+    }
+  });
 })();

@@ -48,6 +48,49 @@
         <p><i class="bi bi-clock me-2"></i>Sunday services: 8:30 AM &amp; 10:00 AM</p>
       </div>
     </section>
+    <section id="live-stream" class="section-pad live-stream-section" aria-labelledby="live-stream-title">
+      <div class="container">
+        <div class="section-heading">
+          <span class="eyebrow">Join us online</span>
+          <h2 id="live-stream-title">Live Stream</h2>
+          <p id="live-stream-status" role="status" aria-live="polite">Checking the service schedule…</p>
+        </div>
+        <div class="live-stream-card">
+          <div id="live-stream-player" class="video-frame" hidden aria-label="Live service player"></div>
+          <div id="live-stream-provider-frame" class="video-frame" hidden>
+            <iframe id="live-stream-provider-player" title="Live church service on YouTube" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          </div>
+          <div class="live-stream-details">
+            <p id="live-viewer-count" class="live-viewer-count" aria-live="polite"></p>
+            <p id="live-stream-next-service"></p>
+            <p id="live-stream-fallback" class="live-stream-fallback" hidden>If the player isn’t available, <a id="live-stream-fallback-link" href="#" target="_blank" rel="noopener noreferrer">open the church stream on YouTube</a>.</p>
+            <div class="live-stream-links">
+              <a id="live-stream-watch" class="btn-church" href="#" target="_blank" rel="noopener noreferrer" hidden>Watch Live <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
+              <a id="live-stream-channel" class="btn-church btn-church-outline-dark" href="#" target="_blank" rel="noopener noreferrer" hidden>Visit our channel <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            </div>
+          </div>
+          <div id="live-chat-panel" class="live-chat-panel" hidden>
+            <div class="live-chat-heading"><h3>Live chat</h3><p>Be kind and respectful. Messages are not stored after this broadcast.</p></div>
+            <ol id="live-chat-messages" class="live-chat-messages" role="log" aria-label="Live chat messages" aria-live="polite" aria-relevant="additions"></ol>
+            <form id="live-chat-form" class="live-chat-form">
+              <label>Your name <input name="name" maxlength="40" autocomplete="nickname" placeholder="Viewer"></label>
+              <label>Message <input name="message" maxlength="400" autocomplete="off" required></label>
+              <button class="btn-church" type="submit">Send message</button>
+              <p id="live-chat-status" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <form id="live-email-form" class="live-email-form">
+            <h3>Get live service email alerts</h3>
+            <p>Subscribe to receive an email when a broadcast begins. You’ll need to confirm your address, and every alert includes an unsubscribe link. Your confirmed email is stored until you unsubscribe.</p>
+            <label>Email address <input name="email" type="email" maxlength="254" autocomplete="email" required></label>
+            <label class="live-email-trap" aria-hidden="true">Website URL <input name="website" type="text" tabindex="-1" autocomplete="off"></label>
+            <label class="live-email-consent"><input name="consent" type="checkbox" value="yes" required> I agree to receive live service email alerts and understand I can unsubscribe at any time.</label>
+            <button class="btn-church" type="submit">Subscribe to alerts</button>
+            <p id="live-email-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
     <section class="section-pad">
       <div class="container">
         <div class="section-heading"><span class="eyebrow">Welcome &amp; beliefs</span><h2>We are a church family rooted in the Word of God.</h2><p>A short introduction to who we are, what we believe, and what worship is like at our church.</p></div>
@@ -114,6 +157,7 @@
   <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center" aria-label="Back to top"><i class="bi bi-arrow-up-short"></i></a>
   <script src="assets/vendor/aos/aos.js"></script>
   <script src="assets/js/church.js"></script>
+  <script src="assets/js/live-stream.bundle.js" defer></script>
   <script>AOS.init({ duration: 600, once: true });</script>
 </body>
 </html>

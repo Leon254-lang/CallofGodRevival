@@ -71,6 +71,7 @@
 
       <nav class="tabs" aria-label="Admin sections">
         <button class="tab active" type="button" data-tab="site">Church details</button>
+        <button class="tab" type="button" data-tab="live">Live broadcast</button>
         <button class="tab" type="button" data-tab="pages">Page headings</button>
         <button class="tab" type="button" data-tab="editor">Edit page</button>
         <button class="tab" type="button" data-tab="content">Content library</button>
@@ -100,6 +101,13 @@
           <label>Sunday service times
             <input name="serviceTimes" maxlength="120" placeholder="8:30 AM &amp; 10:00 AM" required>
           </label>
+          <label class="full-width">Weekly service schedule
+            <input name="serviceSchedule" maxlength="300" placeholder="Sunday 08:30, Sunday 10:00" required>
+          </label>
+          <p class="form-help full-width">Use weekday and 24-hour local time, separated by commas. Example: Sunday 08:30, Sunday 10:00.</p>
+          <label>Service time zone
+            <input name="serviceTimeZone" maxlength="80" placeholder="Africa/Nairobi" required>
+          </label>
           <label class="full-width">Address
             <input name="address" maxlength="240" required>
           </label>
@@ -109,6 +117,18 @@
           <label>YouTube channel
             <input name="youtubeUrl" type="url" maxlength="500">
           </label>
+          <fieldset class="full-width menu-labels">
+            <legend>Live stream</legend>
+            <label class="full-width">Streaming channel or Watch Live link
+              <input name="streamChannelUrl" type="url" maxlength="500" placeholder="Leave blank to use the YouTube channel above">
+            </label>
+            <label class="full-width">YouTube live, watch, or embed URL
+              <input name="streamEmbedUrl" type="url" maxlength="500" placeholder="https://www.youtube.com/watch?v=...">
+            </label>
+            <p class="form-help full-width">Enter a YouTube video URL, or a channel live embed URL using its UC… channel ID. The site converts it to YouTube’s privacy-enhanced embed URL.</p>
+            <label class="full-width"><input name="streamLive" type="checkbox"> The external YouTube stream is live</label>
+            <p class="form-help full-width">Use this checkbox to show or hide an externally hosted stream. The Live broadcast tab separately controls the LiveKit camera stream, recording, and viewer chat.</p>
+          </fieldset>
           <label class="full-width">Secure giving provider link (optional)
             <input name="givingUrl" type="url" maxlength="500" placeholder="https://...">
           </label>
@@ -157,6 +177,32 @@
             <button class="button" type="submit">Save church details</button>
           </div>
         </form>
+      </section>
+
+      <section id="panel-live" class="admin-panel" hidden>
+        <div class="panel-heading">
+          <div><h2>Live broadcast</h2><p>Start a camera and microphone broadcast to your public church stream. This requires a secure HTTPS website and configured LiveKit and S3 server credentials.</p></div>
+        </div>
+        <div class="content-layout">
+          <section class="editor-card broadcast-card" aria-labelledby="broadcast-controls-title">
+            <h3 id="broadcast-controls-title">Broadcast controls</h3>
+            <p id="admin-live-status" role="status" aria-live="polite">Checking stream status…</p>
+            <p id="admin-live-viewers" aria-live="polite">0 viewers</p>
+            <video id="admin-live-preview" class="admin-live-preview" autoplay muted playsinline aria-label="Your broadcast camera preview" hidden></video>
+            <p id="admin-live-recording" class="form-help">Recordings are saved to the configured S3-compatible bucket.</p>
+            <div class="broadcast-actions">
+              <button id="start-live-button" class="button" type="button">Start live broadcast</button>
+              <button id="toggle-live-microphone" class="button button-outline" type="button" disabled>Mute microphone</button>
+              <button id="toggle-live-camera" class="button button-outline" type="button" disabled>Turn camera off</button>
+              <button id="stop-live-button" class="button button-danger" type="button" disabled>End broadcast</button>
+            </div>
+            <p class="form-help">Your browser will ask for camera and microphone permission. Keep this dashboard open during the service. When you end the broadcast, LiveKit finalizes and uploads the recording.</p>
+          </section>
+          <section class="content-list-wrap" aria-labelledby="admin-live-chat-title">
+            <div class="list-heading"><h3 id="admin-live-chat-title">Viewer chat</h3></div>
+            <ol id="admin-live-chat" class="admin-live-chat" role="log" aria-label="Viewer live chat" aria-live="polite" aria-relevant="additions"></ol>
+          </section>
+        </div>
       </section>
 
       <section id="panel-pages" class="admin-panel" hidden>
@@ -374,5 +420,6 @@
     <article id="content-preview-card" class="preview-content-card"></article>
   </dialog>
   <script src="/admin/admin.js" defer></script>
+  <script src="/admin/live-dashboard.bundle.js" defer></script>
 </body>
 </html>

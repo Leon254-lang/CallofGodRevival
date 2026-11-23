@@ -2,4 +2,6 @@
 .env.*
 !.env.example
 node_modules/
+assets/js/live-stream.bundle.js
+admin/live-dashboard.bundle.js
 npm-debug.log*
