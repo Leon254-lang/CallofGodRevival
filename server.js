@@ -974,12 +974,17 @@ function wireLiveSockets(socketServer) {
 async function sendSubscriptionConfirmation(email, token) {
   const confirmationUrl = new URL('/api/public/live/confirm', `${publicBaseUrl()}/`);
   confirmationUrl.searchParams.set('token', token);
-  await sendMailTransport().sendMail({
-    from: process.env.SMTP_FROM,
-    to: email,
-    subject: 'Confirm live service email alerts',
-    text: `Please confirm your email address to receive live service alerts:\n\n${confirmationUrl.toString()}\n\nIf you did not request these alerts, you can ignore this message.`,
-  });
+  try {
+    await sendMailTransport().sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: 'Confirm live service email alerts',
+      text: `Please confirm your email address to receive live service alerts:\n\n${confirmationUrl.toString()}\n\nIf you did not request these alerts, you can ignore this message.`,
+    });
+  } catch (error) {
+    console.error('Live subscription confirmation email could not be delivered:', error);
+    throw new HttpError(503, 'The email service could not send a confirmation. Please try again later or contact the ministry.');
+  }
 }
 
 async function notifyLiveSubscribers() {
