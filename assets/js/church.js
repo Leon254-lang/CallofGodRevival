@@ -1,4 +1,13 @@
 (() => {
+  window.fumsData = window.fumsData || [];
+  window.fums = window.fums || function () {
+    window.fumsData.push(arguments);
+  };
+  const fumsScript = document.createElement('script');
+  fumsScript.src = 'https://pkg.api.bible/fumsV3.min.js';
+  fumsScript.async = true;
+  document.head.append(fumsScript);
+
   const toggle = document.querySelector('.mobile-nav-toggle');
   const body = document.body;
 
@@ -405,23 +414,70 @@
     window.history.replaceState(null, '', `${window.location.pathname}#contact`);
   }
 
+  const contactForm = document.querySelector('#contact form[action="forms/contact.php"]');
+  if (contactForm) {
+    const loading = contactForm.querySelector('.loading');
+    const errorMessage = contactForm.querySelector('.error-message');
+    const sentMessage = contactForm.querySelector('.sent-message');
+    const submitButton = contactForm.querySelector('button[type="submit"]');
+
+    contactForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      loading.classList.add('d-block');
+      errorMessage.classList.remove('d-block');
+      sentMessage.classList.remove('d-block');
+      submitButton.disabled = true;
+
+      try {
+        const response = await fetch(contactForm.action, {
+          method: 'POST',
+          body: new FormData(contactForm),
+          credentials: 'same-origin',
+          headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(result?.error || 'Your message could not be sent. Please try again or contact the ministry directly.');
+        }
+        if (typeof result?.message !== 'string') {
+          throw new Error('The server returned an unexpected response. Please contact the ministry to confirm your message was received.');
+        }
+
+        sentMessage.textContent = result.message;
+        sentMessage.classList.add('d-block');
+        contactForm.reset();
+      } catch (error) {
+        errorMessage.textContent = error instanceof Error
+          ? error.message
+          : 'Your message could not be sent. Please try again or contact the ministry directly.';
+        errorMessage.classList.add('d-block');
+      } finally {
+        loading.classList.remove('d-block');
+        submitButton.disabled = false;
+      }
+    });
+  }
+
   const assistant = document.createElement('aside');
   assistant.className = 'church-assistant';
   assistant.innerHTML = `
     <button class="church-assistant-toggle" type="button" aria-expanded="false" aria-controls="church-assistant-panel">
-      <i class="bi bi-chat-dots" aria-hidden="true"></i> Ask about the Bible or church
+      <i class="bi bi-chat-dots" aria-hidden="true"></i> Search the Bible
     </button>
     <section id="church-assistant-panel" class="church-assistant-panel" role="dialog" aria-labelledby="church-assistant-title" hidden>
       <header class="church-assistant-header">
-        <div><h2 id="church-assistant-title">Bible &amp; Church Assistant</h2><p>KJV questions and church information</p></div>
+        <div><h2 id="church-assistant-title">Bible Search</h2><p>King James Version (KJV)</p></div>
         <button class="church-assistant-close" type="button" aria-label="Close assistant">×</button>
       </header>
-      <p class="church-assistant-disclaimer">AI answers can be mistaken. Check Scripture and confirm church details. Messages are sent to OpenAI; don’t share private information.</p>
+      <p class="church-assistant-disclaimer">Search returns matching KJV verses, not generated explanations or church information. Search terms are sent to API.Bible, and anonymous usage is reported as required by its terms. Don’t enter private information.</p>
       <div class="church-assistant-messages" role="log" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions"></div>
       <p class="church-assistant-status" role="status" aria-live="polite"></p>
       <form class="church-assistant-form">
-        <label for="church-assistant-input">Your question</label>
-        <textarea id="church-assistant-input" name="question" maxlength="1200" rows="2" required></textarea>
+        <label for="church-assistant-input">Search a Bible phrase or passage</label>
+        <textarea id="church-assistant-input" name="question" maxlength="1200" rows="2" placeholder="For example, John 3:16 or faith" required></textarea>
         <button class="btn-church" type="submit">Send</button>
       </form>
     </section>`;
@@ -434,7 +490,6 @@
   const assistantStatus = assistant.querySelector('.church-assistant-status');
   const assistantForm = assistant.querySelector('.church-assistant-form');
   const assistantInput = assistant.querySelector('#church-assistant-input');
-  const conversation = [];
 
   const appendAssistantMessage = (role, text) => {
     const message = document.createElement('p');
@@ -444,7 +499,7 @@
     assistantMessages.scrollTop = assistantMessages.scrollHeight;
   };
 
-  appendAssistantMessage('assistant', 'Hello! Ask me about the King James Bible or the church. I’ll cite Scripture when I can and let you know when I’m unsure.');
+  appendAssistantMessage('assistant', 'Search the King James Bible by topic, phrase, or passage reference. I return matching verses, not generated interpretations.');
 
   const closeAssistant = () => {
     assistantPanel.hidden = true;
@@ -467,29 +522,26 @@
     event.preventDefault();
     const question = assistantInput.value.trim();
     if (!question) return;
-    conversation.push({ role: 'user', content: question });
-    if (conversation.length > 8) conversation.splice(0, conversation.length - 8);
     appendAssistantMessage('user', question);
     assistantInput.value = '';
     assistantInput.disabled = true;
     assistantForm.querySelector('button[type="submit"]').disabled = true;
     assistantPanel.setAttribute('aria-busy', 'true');
-    assistantStatus.textContent = 'Thinking…';
+    assistantStatus.textContent = 'Searching the King James Version…';
 
     try {
       const response = await fetch('/api/public/church-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ messages: conversation }),
+        body: JSON.stringify({ question }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || `The assistant could not answer (${response.status}).`);
       if (typeof data.answer !== 'string' || !data.answer.trim()) {
-        throw new Error('The assistant returned an empty answer. Please try again.');
+        throw new Error('Bible search returned no result. Please try again.');
       }
-      conversation.push({ role: 'assistant', content: data.answer });
-      if (conversation.length > 8) conversation.splice(0, conversation.length - 8);
+      window.fums('trackView', data.fumsToken);
       appendAssistantMessage('assistant', data.answer);
       assistantStatus.textContent = '';
     } catch (error) {

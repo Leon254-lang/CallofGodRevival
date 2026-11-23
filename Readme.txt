@@ -43,21 +43,18 @@ site uses YouTube's privacy-enhanced embed player and the existing channel link
 as a fallback. Clear the checkbox when the stream ends. YouTube channel live
 embeds require the channel's UC… ID; a direct live-video URL is also supported.
 
-Bible and church assistant
---------------------------
+Bible search
+------------
 
-Set OPENAI_API_KEY in the Node host's private environment to enable the chat
-assistant. OPENAI_MODEL is optional and defaults to gpt-4.1-mini. The chat
-widget appears across the public website. It sends a visitor's current
-conversation to OpenAI and uses relevant published church content and public
-church settings as context. Conversation history is kept only in the visitor's
-browser memory and is not saved by this site. Do not enter private information
-in the chat. The assistant cites KJV references when confident, but AI answers
-can be wrong and should be checked against Scripture and the church.
-
-The assistant requires an OpenAI API account with API access and billing
-enabled. If the key is missing or the provider is unavailable, the widget shows
-an error instead of returning an invented answer.
+Set API_BIBLE_KEY in the Node host's private environment to enable the Bible
+search widget. The server finds the King James Version (KJV) available to that
+API.Bible account and searches it for the visitor's latest topic, phrase, or
+passage reference. This is Scripture search, not an AI assistant: it does not
+interpret verses or answer church-information questions. Search terms are sent
+to API.Bible, and the required FUMS tracker reports anonymous Scripture usage.
+Conversation text is not stored by this site. Do not enter private information.
+If the key is missing, KJV access is unavailable, or API.Bible is down, the
+widget shows an error rather than inventing a response.
 
 Deployment configuration
 ------------------------
