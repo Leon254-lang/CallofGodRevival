@@ -51,6 +51,17 @@
   const currentYear = document.querySelector('#current-year');
   if (currentYear) currentYear.textContent = String(new Date().getFullYear());
 
+  const footerCopyright = document.querySelector('#footer .copyright p');
+  if (footerCopyright && !footerCopyright.querySelector('a[href="privacy-policy.html"]')) {
+    const privacyLink = document.createElement('a');
+    privacyLink.href = 'privacy-policy.html';
+    privacyLink.textContent = 'Privacy Policy';
+    const termsLink = document.createElement('a');
+    termsLink.href = 'terms-of-use.html';
+    termsLink.textContent = 'Terms of Use';
+    footerCopyright.append(document.createTextNode(' · '), privacyLink, document.createTextNode(' · '), termsLink);
+  }
+
   const cmsPages = {
     'index.html': 'home',
     'about.html': 'about',

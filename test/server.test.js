@@ -207,16 +207,28 @@ test('serves the admin portal without exposing server source files', async (cont
   await new Promise((resolve) => server.once('listening', resolve));
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
 
-  const [adminResponse, sourceResponse, formResponse, adminBundleResponse, viewerBundleResponse] = await Promise.all([
+  const [
+    adminResponse,
+    sourceResponse,
+    formResponse,
+    adminBundleResponse,
+    viewerBundleResponse,
+    privacyResponse,
+    termsResponse,
+  ] = await Promise.all([
     fetch(`${baseUrl}/admin`),
     fetch(`${baseUrl}/server.js`),
     fetch(`${baseUrl}/forms/prayer.php`),
     fetch(`${baseUrl}/admin/live-dashboard.bundle.js`),
     fetch(`${baseUrl}/assets/js/live-stream.bundle.js`),
+    fetch(`${baseUrl}/privacy-policy.html`),
+    fetch(`${baseUrl}/terms-of-use.html`),
   ]);
   const adminHtml = await adminResponse.text();
   const sourceBody = await sourceResponse.text();
   const formBody = await formResponse.text();
+  const privacyHtml = await privacyResponse.text();
+  const termsHtml = await termsResponse.text();
 
   const homeResponse = await fetch(`${baseUrl}/`);
   const homeHtml = await homeResponse.text();
@@ -230,6 +242,13 @@ test('serves the admin portal without exposing server source files', async (cont
   assert.equal(adminResponse.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), true);
   assert.equal(adminBundleResponse.status, 200);
   assert.equal(viewerBundleResponse.status, 200);
+  assert.equal(privacyResponse.status, 200);
+  assert.equal(termsResponse.status, 200);
+  assert.match(privacyHtml, /Data Protection Act, 2019/);
+  assert.match(privacyHtml, /callofgodrevivalministry@gmail\.com/);
+  assert.match(privacyHtml, /OpenAI/);
+  assert.match(termsHtml, /Terms of Use/);
+  assert.match(termsHtml, /Ugunja-Ukwala Road/);
   assert.equal(adminResponse.headers.get('content-security-policy')?.includes("connect-src 'self' https: wss:"), true);
   assert.equal(homeResponse.status, 200);
   assert.match(homeHtml, /Call of God Revival Ministry/);

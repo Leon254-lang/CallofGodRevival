@@ -99,6 +99,11 @@ or sign-up counts. The JSON export does not include uploaded images; database
 backups must include the GridFS media collections described below. All admin
 accounts currently have the same full administrator access.
 
+The public site includes Privacy Policy and Terms of Use pages. Before
+production, confirm that the ministry's legal identity, data-handling practices,
+service providers, retention periods, and any ODPC obligations match the
+published policy.
+
 Deployment
 ----------
 

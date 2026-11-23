@@ -1693,7 +1693,7 @@ app.use('/assets', express.static(path.join(ROOT, 'assets'), { dotfiles: 'deny',
 const publicPages = new Set([
   'index.html', 'about.html', 'visit.html', 'courses.html', 'course-details.html',
   'sermons.html', 'events.html', 'location.html', 'trainers.html', 'pricing.html',
-  'starter-page.html', 'contact.html',
+  'starter-page.html', 'contact.html', 'privacy-policy.html', 'terms-of-use.html',
 ]);
 app.get('/', (_req, res) => res.sendFile(path.join(ROOT, 'index.html')));
 app.get('/:page', (req, res, next) => {
