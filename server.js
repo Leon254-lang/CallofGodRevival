@@ -1,10 +1,10 @@
 'use strict';
 
-require('dotenv').config();
+const path = require('node:path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const crypto = require('node:crypto');
 const http = require('node:http');
-const path = require('node:path');
 const { promisify } = require('node:util');
 const express = require('express');
 const nodemailer = require('nodemailer');
