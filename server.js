@@ -1684,7 +1684,7 @@ app.post('/api/public/live/subscribe', asyncRoute(async (req, res) => {
     { upsert: true },
   );
   await sendSubscriptionConfirmation(email, token);
-  res.json({ message: 'Check your email and confirm your address to receive live service alerts.' });
+  res.json({ message: 'Success! A confirmation email has been sent. Check your inbox and confirm your address to finish subscribing.' });
 }));
 
 app.get('/api/public/live/confirm', asyncRoute(async (req, res) => {

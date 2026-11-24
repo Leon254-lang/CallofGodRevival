@@ -227,7 +227,7 @@ import { getNextService } from './live-schedule.js';
   const emailResult = new URLSearchParams(window.location.search).get('liveEmail');
   if (emailResult) {
     emailStatus.textContent = {
-      confirmed: 'Your email is confirmed. You’ll receive an alert when the next live service begins.',
+      confirmed: 'Success! Your email is confirmed. You’ll receive an alert when the next live service begins.',
       unsubscribed: 'You have been unsubscribed from live service email alerts.',
       invalid: 'That confirmation or unsubscribe link is invalid or has expired.',
     }[emailResult] || '';
