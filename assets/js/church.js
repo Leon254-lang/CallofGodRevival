@@ -406,61 +406,6 @@
     }
   }
 
-  const contactStatus = document.querySelector('#contact-form-status');
-  if (contactStatus && new URLSearchParams(window.location.search).get('message') === 'sent') {
-    contactStatus.textContent = 'Your message was handed to the ministry email service. Delivery can be delayed; if your matter is urgent, please call the ministry.';
-    contactStatus.classList.add('alert-success');
-    contactStatus.hidden = false;
-    window.history.replaceState(null, '', `${window.location.pathname}#contact`);
-  }
-
-  const contactForm = document.querySelector('#contact form[action="forms/contact.php"]');
-  if (contactForm) {
-    const loading = contactForm.querySelector('.loading');
-    const errorMessage = contactForm.querySelector('.error-message');
-    const sentMessage = contactForm.querySelector('.sent-message');
-    const submitButton = contactForm.querySelector('button[type="submit"]');
-
-    contactForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      loading.classList.add('d-block');
-      errorMessage.classList.remove('d-block');
-      sentMessage.classList.remove('d-block');
-      submitButton.disabled = true;
-
-      try {
-        const response = await fetch(contactForm.action, {
-          method: 'POST',
-          body: new FormData(contactForm),
-          credentials: 'same-origin',
-          headers: {
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          },
-        });
-        const result = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(result?.error || 'Your message could not be sent. Please try again or contact the ministry directly.');
-        }
-        if (typeof result?.message !== 'string') {
-          throw new Error('The server returned an unexpected response. Please contact the ministry to confirm your message was received.');
-        }
-
-        sentMessage.textContent = result.message;
-        sentMessage.classList.add('d-block');
-        contactForm.reset();
-      } catch (error) {
-        errorMessage.textContent = error instanceof Error
-          ? error.message
-          : 'Your message could not be sent. Please try again or contact the ministry directly.';
-        errorMessage.classList.add('d-block');
-      } finally {
-        loading.classList.remove('d-block');
-        submitButton.disabled = false;
-      }
-    });
-  }
-
   const assistant = document.createElement('aside');
   assistant.className = 'church-assistant';
   assistant.innerHTML = `

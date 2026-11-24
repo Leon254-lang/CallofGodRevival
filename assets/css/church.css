@@ -897,12 +897,12 @@ a:hover {
   color: var(--accent-color);
 }
 
-.contact .php-email-form button[type=submit] {
+.contact .contact-form button[type=submit] {
   border-radius: 4px;
   background: var(--heading-color);
 }
 
-.contact .php-email-form button[type=submit]:hover {
+.contact .contact-form button[type=submit]:hover {
   background: var(--accent-color);
 }
 

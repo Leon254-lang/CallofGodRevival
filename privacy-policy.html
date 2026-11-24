@@ -25,7 +25,7 @@
     </div>
   </header>
   <main>
-    <div class="page-title"><div class="heading"><div class="container"><div class="row justify-content-center text-center"><div class="col-lg-9"><span class="eyebrow">Your information</span><h1>Privacy Policy</h1><p class="mb-0">Effective date: November 23, 2026</p></div></div></div></div></div>
+    <div class="page-title"><div class="heading"><div class="container"><div class="row justify-content-center text-center"><div class="col-lg-9"><span class="eyebrow">Your information</span><h1>Privacy Policy</h1><p class="mb-0">Effective date: November 24, 2026</p></div></div></div></div></div>
     <section class="section-pad">
       <div class="container"><div class="row justify-content-center"><div class="col-lg-10">
         <p>This notice describes how Call of God Revival Ministry International handles information when you visit this website or use its forms and online services. We aim to handle personal data in accordance with Kenya's Data Protection Act, 2019 and applicable regulations. The notice should be read together with our <a href="terms-of-use.html">Terms of Use</a>.</p>
@@ -41,7 +41,7 @@
 
         <h2 class="content-heading mt-5">Information we handle</h2>
         <ul>
-          <li><strong>Contact messages:</strong> your name, email address, subject, and message.</li>
+          <li><strong>Contact messages:</strong> your name, email address, subject, and message. The website stores them in MongoDB Atlas for up to 90 days and emails them to the ministry.</li>
           <li><strong>Prayer requests:</strong> the message and any name, email address, or phone number you choose to provide. A prayer request may reveal sensitive information, so please share only what is needed and avoid identifying another person without their permission.</li>
           <li><strong>Live service email alerts:</strong> your email address and subscription status and timestamps. We use confirmation and unsubscribe links; confirmation tokens are stored as hashes. An unconfirmed request expires after 24 hours, and a confirmed address is kept until you unsubscribe or request deletion.</li>
           <li><strong>Bible search:</strong> the search terms you submit are sent to API.Bible to find matching King James Version verses. Search terms are not saved by this website. The required API.Bible FUMS tracker reports anonymous device, session, and Scripture-usage information under API.Bible's terms and data practices.</li>
@@ -54,12 +54,12 @@
         <p>We use information to answer contact and prayer messages, send live alerts you requested, operate and secure the website, administer church content, and provide live streaming and chat. We process information on the basis of your request, consent where requested, and other lawful grounds available under applicable law. You can withdraw consent for an optional subscription by unsubscribing.</p>
 
         <h2 class="content-heading mt-5">Email, hosting, and other service providers</h2>
-        <p>Contact and prayer submissions are emailed to the ministry using the configured mail service; the website application does not save those submissions in its MongoDB database. Copies may remain in the ministry's email account and the mail provider's systems according to their retention practices.</p>
+        <p>Contact submissions are stored in the website's MongoDB Atlas database for up to 90 days and emailed to the ministry using the configured mail service. If email delivery fails, the website keeps the message in Atlas and reports that the email notification was not sent. Prayer requests are emailed to the ministry but are not stored in the website database. Copies may remain in the ministry's email account and the mail provider's systems according to their retention practices.</p>
         <p>Depending on which features are enabled, information may be processed by Render for website hosting, MongoDB Atlas for the website database and media, API.Bible for Bible search and Scripture-usage reporting, LiveKit for live audio/video, the configured SMTP provider for email, and the configured S3-compatible storage provider for broadcast recordings. Some providers may process information outside Kenya. Where this occurs, the ministry will use arrangements required by applicable data-protection law.</p>
         <p>Pages may also load YouTube videos and Google Fonts. Following links to services such as Google Maps or Facebook takes you to those providers. Those services have their own privacy notices and may collect information directly from your browser.</p>
 
         <h2 class="content-heading mt-5">Retention and security</h2>
-        <p>We keep information only as long as needed for the purposes described, to meet applicable obligations, or to resolve a matter. Confirmed alert subscriptions remain until you unsubscribe or request deletion; unconfirmed requests expire after 24 hours. Contact and prayer messages are handled in the ministry's email account and are removed when no longer needed, subject to applicable obligations. Administrator records are retained while needed to operate the site. Live chat is temporary as described above. Live recordings, when enabled, are kept in the configured storage according to the ministry's storage and retention settings.</p>
+        <p>We keep information only as long as needed for the purposes described, to meet applicable obligations, or to resolve a matter. Contact messages are automatically deleted from the website database after 90 days; emailed copies follow the ministry's and mail provider's retention practices. Prayer messages are kept only in the ministry's email account and are removed when no longer needed, subject to applicable obligations. Confirmed alert subscriptions remain until you unsubscribe or request deletion; unconfirmed requests expire after 24 hours. Administrator records are retained while needed to operate the site. Live chat is temporary as described above. Live recordings, when enabled, are kept in the configured storage according to the ministry's storage and retention settings.</p>
         <p>The administrator portal uses a session cookie to keep administrators signed in; it is marked HttpOnly and, in production, Secure and SameSite=Strict. The site uses reasonable technical and organizational measures, but no internet transmission or storage method can be guaranteed completely secure.</p>
 
         <h2 class="content-heading mt-5">Your choices and data-protection rights</h2>

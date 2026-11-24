@@ -86,6 +86,7 @@ let admins;
 let sessions;
 let contentItems;
 let settingsCollection;
+let contactMessages;
 let mediaBucket;
 let mailTransport;
 let liveStreams;
@@ -131,6 +132,7 @@ async function connectDatabase() {
   sessions = db.collection('admin_sessions');
   contentItems = db.collection('content_items');
   settingsCollection = db.collection('site_settings');
+  contactMessages = db.collection('contact_messages');
   liveStreams = db.collection('live_streams');
   liveSubscribers = db.collection('live_subscribers');
   mediaBucket = new GridFSBucket(db, { bucketName: 'site_media' });
@@ -140,6 +142,7 @@ async function connectDatabase() {
     sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     contentItems.createIndex({ status: 1, page: 1, order: 1, updatedAt: -1 }),
     contentItems.createIndex({ status: 1, publishAt: 1 }),
+    contactMessages.createIndex({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 }),
     liveSubscribers.createIndex({ email: 1 }, { unique: true }),
     liveSubscribers.createIndex({ confirmationTokenHash: 1 }, { unique: true, sparse: true }),
     liveSubscribers.createIndex({ unsubscribeTokenHash: 1 }, { unique: true, sparse: true }),
@@ -1010,7 +1013,7 @@ function requestIp(req) {
 }
 
 function cleanFormInput(body, field, maxLength) {
-  const value = body[field];
+  const value = body?.[field];
   if (typeof value !== 'string') return '';
   return value.replace(/\0/g, '').trim().slice(0, maxLength);
 }
@@ -1026,7 +1029,7 @@ async function sendWebsiteForm(req, res, kind) {
   }
 
   const name = cleanFormInput(req.body, 'name', 120);
-  const email = normalizeEmail(req.body.email);
+  const email = normalizeEmail(req.body?.email);
   const phone = cleanFormInput(req.body, 'phone', 40);
   const subject = cleanFormInput(req.body, 'subject', 160).replace(/[\r\n]/g, ' ');
   const message = cleanFormInput(req.body, 'message', kind === 'prayer' ? 5000 : 8000);
@@ -1034,7 +1037,7 @@ async function sendWebsiteForm(req, res, kind) {
 
   if (
     (!isPrayer && (!name || !email || !subject)) ||
-    (isPrayer && req.body.consent !== 'yes') ||
+    (isPrayer && req.body?.consent !== 'yes') ||
     !message ||
     message.length < 2 ||
     (!isPrayer && !email)
@@ -1070,6 +1073,72 @@ async function sendWebsiteForm(req, res, kind) {
     ? '/starter-page.html?prayer=sent#prayer-request-form'
     : '/contact.html?message=sent#contact';
   res.redirect(303, location);
+}
+
+function normalizeContactSubmission(body) {
+  const name = cleanFormInput(body, 'name', 120);
+  const email = normalizeEmail(body?.email);
+  const subject = cleanFormInput(body, 'subject', 160).replace(/[\r\n]/g, ' ');
+  const message = cleanFormInput(body, 'message', 8000);
+
+  if (!name || !email || !subject || message.length < 2) {
+    throw new HttpError(400, 'Please check your name, email, subject, and message, then try again.');
+  }
+
+  return { name, email, subject, message };
+}
+
+async function sendContactMessage(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  ensureHttps(req);
+  ensureSameOrigin(req);
+  const ipKey = `form:contact:${requestIp(req)}`;
+  limitAttempts(ipKey, 5, 10 * 60 * 1000);
+  recordFailedAttempt(ipKey, 10 * 60 * 1000);
+
+  if (cleanFormInput(req.body, 'website', 500)) {
+    return res.status(202).json({ message: 'Your message has been received.' });
+  }
+
+  const submission = normalizeContactSubmission(req.body);
+  const createdAt = new Date();
+  const record = {
+    ...submission,
+    createdAt,
+    notificationStatus: 'pending',
+  };
+  const { insertedId } = await contactMessages.insertOne(record);
+
+  let notificationSent = false;
+  try {
+    await sendMailTransport().sendMail({
+      from: process.env.SMTP_FROM,
+      to: 'callofgodrevivalministry@gmail.com',
+      replyTo: submission.email,
+      subject: 'Website contact message',
+      text: `A message was submitted through the church website.\n\nName: ${submission.name}\nEmail: ${submission.email}\nSubject: ${submission.subject}\n\nMessage:\n${submission.message}\n`,
+    });
+    notificationSent = true;
+  } catch (error) {
+    console.error('Website contact email notification failed:', error);
+  }
+
+  try {
+    await contactMessages.updateOne(
+      { _id: insertedId },
+      { $set: { notificationStatus: notificationSent ? 'sent' : 'failed' } },
+    );
+  } catch (error) {
+    console.error('Website contact notification status could not be updated:', error);
+  }
+
+  clearAttempts(ipKey);
+  res.status(notificationSent ? 200 : 202).json({
+    message: notificationSent
+      ? 'Your message was received and emailed to the ministry.'
+      : 'Your message was saved, but the ministry email notification could not be sent. Please call +254 726 046000 or email callofgodrevivalministry@gmail.com.',
+    notificationSent,
+  });
 }
 
 const ADMIN_CSP = "default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'; connect-src 'self' https: wss:; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; media-src 'self' blob:";
@@ -1651,9 +1720,8 @@ app.get('/api/public/live/unsubscribe', asyncRoute(async (req, res) => {
   res.redirect(`${publicBaseUrl()}/?liveEmail=${result.deletedCount ? 'unsubscribed' : 'invalid'}#live-stream`);
 }));
 
-app.post('/forms/contact.php', asyncRoute(async (req, res) => sendWebsiteForm(req, res, 'contact')));
-app.post('/forms/prayer.php', asyncRoute(async (req, res) => sendWebsiteForm(req, res, 'prayer')));
-app.all('/forms/:name.php', (_req, res) => sendJsonError(res, 404, 'That form endpoint is not available.'));
+app.post('/api/public/contact', asyncRoute(sendContactMessage));
+app.post('/api/public/prayer', asyncRoute(async (req, res) => sendWebsiteForm(req, res, 'prayer')));
 
 app.get('/admin', (_req, res) => res.sendFile(path.join(ROOT, 'admin', 'index.html')));
 app.get('/admin/', (_req, res) => res.sendFile(path.join(ROOT, 'admin', 'index.html')));
@@ -1672,7 +1740,6 @@ app.get('/:page', (req, res, next) => {
 });
 
 app.use((req, res) => {
-  if (req.path.endsWith('.php')) return sendJsonError(res, 404, 'That form endpoint is not available.');
   res.status(404).send('Page not found.');
 });
 
@@ -1731,6 +1798,7 @@ if (require.main === module) {
 module.exports = {
   app,
   normalizeBibleSearchQuery,
+  normalizeContactSubmission,
   normalizeContentItem,
   normalizeSettings,
   normalizeYouTubeEmbedUrl,

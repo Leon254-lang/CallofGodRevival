@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   app,
   normalizeBibleSearchQuery,
+  normalizeContactSubmission,
   normalizeContentItem,
   normalizeSettings,
   normalizeVideoId,
@@ -86,6 +87,48 @@ test('normalizes YouTube URLs to validated video IDs', () => {
   assert.equal(normalizeVideoId('https://youtu.be/AbCdEf_1234'), 'AbCdEf_1234');
   assert.throws(() => normalizeVideoId('https://example.org/watch?v=AbCdEf_1234'), /youtube.com or youtu.be/);
   assert.throws(() => normalizeVideoId('short'), /11-character/);
+});
+
+test('normalizes contact messages and rejects incomplete submissions', () => {
+  assert.deepEqual(normalizeContactSubmission({
+    name: '  Sam  ',
+    email: 'SAM@example.org',
+    subject: '  Visit request ',
+    message: '  Please share the service schedule.  ',
+  }), {
+    name: 'Sam',
+    email: 'sam@example.org',
+    subject: 'Visit request',
+    message: 'Please share the service schedule.',
+  });
+  assert.throws(() => normalizeContactSubmission({
+    name: 'Sam',
+    email: 'invalid',
+    subject: 'Visit request',
+    message: 'Please share the service schedule.',
+  }), /check your name, email, subject, and message/);
+});
+
+test('contact API returns validation errors as JSON', async (context) => {
+  const server = app.listen(0);
+  context.after(() => new Promise((resolve) => {
+    server.closeAllConnections();
+    server.close(resolve);
+  }));
+  await new Promise((resolve) => server.once('listening', resolve));
+  const address = `127.0.0.1:${server.address().port}`;
+  const response = await fetch(`http://${address}/api/public/contact`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: `http://${address}`,
+    },
+    body: JSON.stringify({ name: 'Sam', email: 'invalid' }),
+  });
+  const result = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.match(result.error, /check your name, email, subject, and message/);
 });
 
 test('normalizes YouTube live URLs to privacy-enhanced embeds', () => {
@@ -256,6 +299,7 @@ test('serves the admin portal without exposing server source files', async (cont
     formResponse,
     adminBundleResponse,
     viewerBundleResponse,
+    contactBundleResponse,
     privacyResponse,
     termsResponse,
   ] = await Promise.all([
@@ -264,6 +308,7 @@ test('serves the admin portal without exposing server source files', async (cont
     fetch(`${baseUrl}/forms/prayer.php`),
     fetch(`${baseUrl}/admin/live-dashboard.bundle.js`),
     fetch(`${baseUrl}/assets/js/live-stream.bundle.js`),
+    fetch(`${baseUrl}/assets/js/contact-form.bundle.js`),
     fetch(`${baseUrl}/privacy-policy.html`),
     fetch(`${baseUrl}/terms-of-use.html`),
   ]);
@@ -272,6 +317,8 @@ test('serves the admin portal without exposing server source files', async (cont
   const formBody = await formResponse.text();
   const privacyHtml = await privacyResponse.text();
   const termsHtml = await termsResponse.text();
+  const contactBundle = await contactBundleResponse.text();
+  const contactHtml = await (await fetch(`${baseUrl}/contact.html`)).text();
 
   const homeResponse = await fetch(`${baseUrl}/`);
   const homeHtml = await homeResponse.text();
@@ -285,6 +332,11 @@ test('serves the admin portal without exposing server source files', async (cont
   assert.equal(adminResponse.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), true);
   assert.equal(adminBundleResponse.status, 200);
   assert.equal(viewerBundleResponse.status, 200);
+  assert.equal(contactBundleResponse.status, 200);
+  assert.match(contactBundle, /api\/public\/contact/);
+  assert.match(contactHtml, /contact-form-root/);
+  assert.doesNotMatch(contactHtml, /forms\/contact\.php/);
+  assert.equal(formResponse.status, 404);
   assert.equal(privacyResponse.status, 200);
   assert.equal(termsResponse.status, 200);
   assert.match(privacyHtml, /Data Protection Act, 2019/);

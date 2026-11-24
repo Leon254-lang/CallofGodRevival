@@ -77,8 +77,8 @@ Deployment configuration
 4. Ensure the Node host/reverse proxy permits WebSocket upgrades for the
    same-origin Socket.IO connection and supports long-lived requests. Use HTTPS
    so the broadcaster can grant camera and microphone permissions.
-5. Run npm install and npm start. The start script bundles the LiveKit browser
-   clients locally before launching the server.
+5. Run npm install and npm start. The start script bundles the React contact
+   form and LiveKit browser clients locally before launching the server.
 
 To test, sign in at /admin and open Live broadcast. Click Start live broadcast
 and allow camera/microphone access; open the homepage in another browser to
@@ -90,11 +90,15 @@ chat, and email workflows require the configured MongoDB, LiveKit, S3, and SMTP
 services. Viewer counts and chat are held by the single Node process; use a
 Socket.IO shared adapter before running multiple app instances.
 
-Contact and prayer submissions continue to be emailed only and are not retained
-in the website database. The reports show content counts, not traffic analytics
-or sign-up counts. The JSON export does not include uploaded images; database
-backups must include the GridFS media collections described below. All admin
-accounts currently have the same full administrator access.
+The React contact form sends messages to the Node API, which stores them in
+MongoDB Atlas for up to 90 days and emails them to the ministry. If SMTP delivery
+fails, the saved message remains in Atlas and the visitor is told to contact the
+ministry directly. Prayer requests are emailed only and are not retained in the
+website database. The reports show content counts, not traffic analytics or
+sign-up counts. The JSON export does not include contact messages or uploaded
+images; database backups must include contact_messages and the GridFS media
+collections described below. All admin accounts currently have the same full
+administrator access.
 
 The public site includes Privacy Policy and Terms of Use pages. Before
 production, confirm that the ministry's legal identity, data-handling practices,
@@ -115,8 +119,9 @@ Deployment
 5. Visit /admin and use the setup key to create the first admin. Setup closes
    after that account is created. Keep the setup key private.
 6. Configure SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, and
-   SMTP_FROM for the contact and prayer forms. Those messages are not saved by
-   the website; a delivery failure is reported to the visitor.
+   SMTP_FROM for email notifications from the contact and prayer forms.
+   Contact messages are retained in MongoDB Atlas for up to 90 days if email
+   delivery fails; prayer requests are not stored by the website.
 
 Uploaded JPEG, PNG, and WebP files are kept in MongoDB Atlas GridFS. Back up the
 website database, including the site_media.files and site_media.chunks
